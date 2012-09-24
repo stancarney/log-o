@@ -1,0 +1,22 @@
+{
+  "name": "log-o",
+  "version": "0.1.0",
+  "author": "Stan Carney &lt;stan.carney&amp;rootsh.me&gt;",
+  "description": "Node based syslog server.",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "glossy": "*",
+    "moment": "*",
+    "mongodb": "*",
+    "nconf": "*",
+    "cookies": "*",
+    "querystring": "*",
+    "prompt": "*"
+  },
+  "license": "GPLv3",
+  "engine": {
+    "node": ">= 0.8.0"
+  }
+}

@@ -1,0 +1,13 @@
+{
+	"db_name": "log-o",
+	"db_username": "log-o",
+	"db_password": "log-o",
+	"db_host": "localhost",
+	"db_port": 27017,
+	"smtp_username": null,
+	"smtp_password": null,
+	"smtp_host": "mail",
+	"smtp_port": 587,
+	"smtp_ssl": false,
+	"smtp_tls": true
+}
