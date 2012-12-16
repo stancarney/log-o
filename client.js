@@ -85,7 +85,11 @@ function search(args){
 					'Cookie': 'auth=' + token
 				}
 		}, function(result){
-			console.log('[' + moment(result['timestamp']).format('MMM D YYYY, HH:mm:ss') + ' ' + result['facility'] + ' ' + result['severity'] + ']     ' + result['hash'] + '   ' + result['host'] + '   ' + result['message']);
+			for (var index in result){
+				var r = result[index];
+				//console.log(r);
+				console.log('[' + moment(r['timestamp']).format('MMM D YYYY, HH:mm:ss') + ' ' + r['facility'] + ' ' + r['severity'] + ']     ' + r['hash'] + '   ' + r['host'] + '   ' + r['message']);
+			}
 		});
 
 		// write data to request body
@@ -109,14 +113,15 @@ function with_token(callback){
 }
 
 function post_request(options, callback){
+	var response = '';
 	var req = http.request(options, function(res) {
-		//console.log('HEADERS: ' + JSON.stringify(res.headers));
-		//console.log('CODE: ' + res.statusCode);
-
 		if(res.headers['set-cookie']) save_token(res.headers['set-cookie'].toString().split(/auth=(.*?);.*/)[1]);
 		res.setEncoding('utf8');
 		res.on('data', function (chunk) {
-			var result = JSON.parse(chunk);
+			response += chunk;
+		});
+		res.on('end', function(){
+			var result = JSON.parse(response);
 			if(!callback) {
 				console.log(result['result']);
 			} else {
@@ -124,7 +129,6 @@ function post_request(options, callback){
 			}
 		});
 	});
-
 	req.on('error', function(e) {
 		console.log('Err ' + e);
 	});

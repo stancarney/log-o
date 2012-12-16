@@ -98,7 +98,7 @@ function auth(req, res, url_parts){
 		db.collection('users', function(err, collection) {
 			collection.findOne({email: res.post['email'], password: res.post['password']}, function(err, user){
 				if(!err && user){
-					send_message(user.email + " logged in.");
+					send_message("Successful Login: " + res.post['email'] + " IP: " + req.connection.remoteAddress);
 					user['token'] = crypto.randomBytes(Math.ceil(256)).toString('base64');
 					user['last_access'] = new Date();
 					collection.save(user);
@@ -111,7 +111,7 @@ function auth(req, res, url_parts){
 					res.end();
 				} else {
 					if(err) console.log(err);
-					send_message("Login failed for user " + res.post['email'] + ". IP: " + req.connection.remoteAddress);
+					send_message("Failed Login: " + res.post['email'] + " IP: " + req.connection.remoteAddress);
 					res.writeHead(405, {"Content-Type": "application/jason"});
 					res.write(JSON.stringify({"result": "Auth failure"}));
 					res.end();
@@ -158,14 +158,13 @@ function search(req, res, url_parts){
 						query = query.limit(100);
 					}
 
-					//TODO:Stan this reports in the wrong order. i.e. backwards. I think we may need to read the results in and echo them back out after reversing... maybe slower.
-
+					var m = [];
 					res.writeHead(200, {"Content-Type": "application/json"});
 					query.each(function(err, message){
 						if(!err && message){
-							//res.write([message._id, moment(message._id.generationTime * 1000).format(), message.host, message.facility, message.severity, message.appName, message.message].join());
-							res.write(JSON.stringify(message));
+							m.push(message); // This kind of sucks. In order to reverse the Cursor we have to load it all in memory.
 						} else {
+							res.write(JSON.stringify(m.reverse()));
 							res.end();
 						}
 					});
@@ -217,7 +216,6 @@ function is_auth(req, res, callback) {
 				collection.save(user);
 				var cookies = new Cookies( req, res );
 				cookies.set('auth', user['token'], { httpOnly: true });
-				//process callback
 				callback(user['token']);
 			} else {
 				if(err) console.log(err);
@@ -231,7 +229,6 @@ function is_auth(req, res, callback) {
 }
 
 function parse_post(req, res, callback) {
-	//if(typeof callback !== 'function') return null;
 	if (req.method == 'POST') {
 		var body = '';
 		req.on('data', function (data) {
