@@ -82,14 +82,19 @@ http.createServer(function (req, res) {
 		case '/auth':
 			auth(req, res, url_parts);
 			break;
-		case '/adduser':
-			adduser(req, res, url_parts);
+		case '/user/add':
+			user_add(req, res, url_parts);
+			break;
+		case '/user/list':
+			user_list(req, res, url_parts);
 			break;
 		case '/search':
 			search(req, res, url_parts);
 			break;
 		default:
-			display_404(url_parts.pathname, req, res);
+			res.writeHead(404, {"Content-Type": "application/json"});
+			res.write(JSON.stringify({"result": "Page not found"}));
+			res.end();
 	}
 }).listen(8000);
 
@@ -121,7 +126,7 @@ function auth(req, res, url_parts){
 	});
 }
 
-function adduser(req, res, url_parts){
+function user_add(req, res, url_parts){
 	parse_post(req, res, function(){
 		is_auth(req, res, function(user){
 			if(is_valid_email(res.post['email'])){
@@ -143,6 +148,23 @@ function adduser(req, res, url_parts){
 				res.write(JSON.stringify({"result": "Invalid email."}));
 				res.end();
 			}
+		});
+	});
+}
+
+function user_list(req, res, url_parts){
+	is_auth(req, res, function(user){
+		db.collection('users', function(err, collection) {
+			var u = [];
+			res.writeHead(200, {'Content-Type': 'application/json'});
+			collection.find({}, { email: 1, last_access: 1 }).sort({email:1}).each(function(err, user){
+				if(!err && user){
+					u.push(user);
+				} else {
+					res.write(JSON.stringify(u));
+					res.end();
+				}
+			});
 		});
 	});
 }

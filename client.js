@@ -10,14 +10,17 @@ switch(process.argv[2]) {
 	case 'auth':
     auth();
   break;
-	case 'adduser':
-    adduser();
+	case 'useradd':
+    user_add();
+  break;
+	case 'userlist':
+    user_list();
   break;
 	default:
     search(process.argv.slice(2));
 }
 
-function adduser(){
+function user_add(){
 	prompt.start();
 	prompt.get(['email', 'password'], function (err, result) {
 		if (err) throw err;
@@ -31,7 +34,7 @@ function adduser(){
 			var req = post_request({
 				host: 'localhost',
 				port: 8000,
-				path: '/adduser',
+				path: '/user/add',
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -43,6 +46,32 @@ function adduser(){
 			req.write(post_data);
 			req.end();
 		});
+	});
+}
+
+function user_list(){
+	var post_data = JSON.stringify({ });
+
+	with_token(function(token){
+		var req = post_request({
+			host: 'localhost',
+			port: 8000,
+			path: '/user/list',
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Content-Length': post_data.length,
+				'Cookie': 'auth=' + token
+			}
+		}, function(result){
+			for (var index in result){
+				var r = result[index];
+				console.log(moment(r['last_access']).format('MMM D YYYY, HH:mm:ss') + '\t' + r['email']);
+			}
+		});
+
+		req.write(post_data);
+		req.end();
 	});
 }
 
