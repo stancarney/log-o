@@ -122,8 +122,8 @@ function auth(req, res, url_parts){
 }
 
 function adduser(req, res, url_parts){
-	is_auth(req, res, function(user){
-		parse_post(req, res, function(){
+	parse_post(req, res, function(){
+		is_auth(req, res, function(user){
 			if(is_valid_email(res.post['email'])){
 				db.collection('users', function(err, collection) {
 					collection.save({email: res.post['email'], password: res.post['password']}, {safe: true}, function(err, result){
@@ -224,7 +224,7 @@ function is_auth(req, res, callback) {
 			} else {
 				if(err) console.log(err);
 				send_message("Expired or invalid token used. IP: " + req.connection.remoteAddress);
-				res.writeHead(405, {"Content-Type": "application/json"});
+				res.writeHead(401, {"Content-Type": "application/json"});
 				res.write(JSON.stringify({"result": "Auth failure"}));
 				res.end();
 			}

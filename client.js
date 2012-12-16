@@ -126,6 +126,10 @@ function post_request(options, callback){
 			} else {
 				callback(result);
 			}
+			if(res.statusCode != 200) {
+				console.log(res.statusCode);
+				process.exit(1);
+			}
 		});
 	});
 	req.on('error', function(e) {
