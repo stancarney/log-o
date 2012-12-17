@@ -90,13 +90,17 @@ http.createServer(function (req, res) {
 		case '/user/list':
 			user_list(req, res, url_parts);
 			break;
+		case '/user/password':
+			change_password(req, res, url_parts);
+			break;
+		case '/logout':
+			logout(req, res, url_parts);
+			break;
 		case '/search':
 			search(req, res, url_parts);
 			break;
 		default:
-			res.writeHead(404, {"Content-Type": "application/json"});
-			res.write(JSON.stringify({"result": "Page not found"}));
-			res.end();
+			write_response_message(res, 404, "page_not_found");
 	}
 }).listen(8000);
 
@@ -105,23 +109,19 @@ function auth(req, res, url_parts){
 		db.collection('users', function(err, collection) {
 			collection.findOne({email: res.post['email'], password: res.post['password']}, function(err, user){
 				if(!err && user){
-					send_message("Successful Login: " + res.post['email'] + " IP: " + req.connection.remoteAddress);
-					user['token'] = crypto.randomBytes(Math.ceil(256)).toString('base64');
-					user['last_access'] = new Date();
+					set_auth_token(req, res, user);
 					collection.save(user);
-					var cookies = new Cookies( req, res );
-					cookies.set('auth', user['token'], { httpOnly: true });
-					cookies.set('a', 'a', { httpOnly: true });
-					cookies.set('b', 'b', { httpOnly: true });
-					res.writeHead(200, {"Content-Type": "application/json"});
-					res.write(JSON.stringify({"result": "Login success"}));
-					res.end();
+					if(user.force_password_change){
+						send_message("Successful Login (force password change): " + res.post['email'] + " IP: " + req.connection.remoteAddress);
+						write_response_message(res, 200, "force_password_change");
+					} else {
+						send_message("Successful Login: " + res.post['email'] + " IP: " + req.connection.remoteAddress);
+						write_response_message(res, 200, "success");
+					}
 				} else {
 					if(err) console.log(err);
 					send_message("Failed Login: " + res.post['email'] + " IP: " + req.connection.remoteAddress);
-					res.writeHead(405, {"Content-Type": "application/json"});
-					res.write(JSON.stringify({"result": "Auth failure"}));
-					res.end();
+					write_response_message(res, 401, "auth_failed");
 				}
 			});
 		});
@@ -133,23 +133,18 @@ function user_add(req, res, url_parts){
 		is_auth(req, res, function(user){
 			if(is_valid_email(res.post['email'])){
 				db.collection('users', function(err, collection) {
-					collection.save({email: res.post['email'], password: password(3)}, {safe: true}, function(err, result){
+					collection.save({email: res.post['email'], password: password(3), force_password_change: true}, {safe: true}, function(err, result){
 						if(err) {
-							res.writeHead(409, {'Content-Type': 'application/json'});
-							res.write(JSON.stringify({"result": "User address already exists."}));
-							res.end();
+							write_response_message(res, 409, "address_exists");
 						} else {
+							send_message("User added: " + res.post['email'] + " by: " + user.email + " IP: " + req.connection.remoteAddress);
 							email.send_welcome(result.email, result.password);
-							res.writeHead(200, {'Content-Type': 'application/json'});
-							res.write(JSON.stringify({"result": "User successfully added."}));
-							res.end();
+							write_response_message(res, 200, "success");
 						}
 					});
 				});
 			} else {
-				res.writeHead(400, {'Content-Type': 'application/json'});
-				res.write(JSON.stringify({"result": "Invalid email."}));
-				res.end();
+				write_response_message(res, 400, "invalid_email");
 			}
 		});
 	});
@@ -167,6 +162,20 @@ function user_list(req, res, url_parts){
 					res.write(JSON.stringify(u));
 					res.end();
 				}
+			});
+		});
+	});
+}
+
+function change_password(req, res, url_parts){
+	parse_post(req, res, function(){
+		is_auth(req, res, function(user){
+			db.collection('users', function(err, collection) {
+				user.password = res.post['new_password'];
+				user.force_password_change = false;
+				send_message("Successful Password Change: " + user.email + " IP: " + req.connection.remoteAddress);
+				collection.save(user);
+				write_response_message(res, 200, "success");
 			});
 		});
 	});
@@ -203,6 +212,26 @@ function search(req, res, url_parts){
 	});
 }
 
+function set_auth_token(req, res, user){
+	user['token'] = crypto.randomBytes(Math.ceil(256)).toString('base64');
+	user['last_access'] = new Date();
+	var cookies = new Cookies( req, res );
+	cookies.set('auth', user['token'], { httpOnly: true });
+}
+
+function logout(req, res, url_parts){
+	is_auth(req, res, function(user){
+		db.collection('users', function(err, collection) {
+			//Set auth token but don't send it back via the cookie
+			user['token'] = crypto.randomBytes(Math.ceil(256)).toString('base64');
+			user['last_access'] = new Date();
+			send_message("Logout: " + user.email + " IP: " + req.connection.remoteAddress);
+			collection.save(user);
+			write_response_message(res, 200, "success");
+		});
+	});
+}
+
 function send_message(message){
 	var address = server.address();
 
@@ -224,34 +253,33 @@ function send_message(message){
 	});
 }
 
-function pop(dictionary, key){
-	var e = dictionary[key];
-	delete dictionary[key];
-	return e;
+function write_response_message(res, status_code, result){
+	res.writeHead(status_code, {"Content-Type": "application/json"});
+	res.write(JSON.stringify({"result": result}));
+	res.end();
 }
 
 function is_auth(req, res, callback) {
 
-	//get cookie
 	var cookies = new Cookies( req, res );
-	var user = cookies.get('auth');
+	var token = cookies.get('auth');
 
-	//check against db
 	db.collection('users', function(err, collection) {
-		collection.findOne({token: user}, function(err, user){
+		collection.findOne({token: token}, function(err, user){
 			if(!err && user){
-				user['token'] = crypto.randomBytes(Math.ceil(256)).toString('base64');
-				user['last_access'] = new Date();
-				collection.save(user);
-				var cookies = new Cookies( req, res );
-				cookies.set('auth', user['token'], { httpOnly: true });
-				callback(user);
+				var url_parts = url.parse(req.url, true);
+				if(user.force_password_change && url_parts.pathname != '/user/password') {
+						send_message("User must change password: " + user.email + " IP: " + req.connection.remoteAddress);
+						write_response_message(res, 200, "force_password_change2");
+				} else {
+					set_auth_token(req, res, user);
+					collection.save(user);
+					callback(user);
+				}
 			} else {
 				if(err) console.log(err);
 				send_message("Expired or invalid token used. IP: " + req.connection.remoteAddress);
-				res.writeHead(401, {"Content-Type": "application/json"});
-				res.write(JSON.stringify({"result": "Auth failure"}));
-				res.end();
+				write_response_message(res, 401, "auth_failed");
 			}
 		});
 	});
@@ -271,11 +299,16 @@ function parse_post(req, res, callback) {
 			callback();
 		});
 	} else {
-		res.writeHead(405, {'Content-Type': 'text/plain'});
-		res.end();
+		write_response_message(res, 405, "method_not_allowed");
 	}
 }
 
 function is_valid_email(email) {
 	return /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+(?:[A-Z]{2}|com|org|net|gov|mil|biz|info|mobi|name|aero|jobs|museum)\b/i.test(email);
+}
+
+function pop(dictionary, key){
+	var e = dictionary[key];
+	delete dictionary[key];
+	return e;
 }

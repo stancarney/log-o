@@ -13,12 +13,10 @@ var server = require("emailjs").server.connect({
 		});
 
 exports.send_welcome = function(email, password) {
-	console.log(email, password);
 	sendEmail(email, "Welcome to Log-o", "Here is your password: " + password);
 };
 
 function sendEmail(to, subject, body) {
-	// send the message and get a callback with an error or details of the message that was sent
 	server.send({
 		 text:    body,
 		 from:    "Log-o",

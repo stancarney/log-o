@@ -6,6 +6,15 @@ var http = require('http')
 
 var token_file = process.env['HOME'] + '/.log-o.token';
 
+var email_schema = {
+	required: true
+};
+
+var password_schema = {
+	hidden: true,
+	required: true
+};
+
 switch(process.argv[2]) {
 	case 'auth':
     auth();
@@ -16,17 +25,21 @@ switch(process.argv[2]) {
 	case 'userlist':
     user_list();
   break;
+	case 'passwd':
+    change_password();
+  break;
+	case 'logout':
+    logout();
+  break;
 	default:
     search(process.argv.slice(2));
 }
 
 function user_add(){
 	prompt.start();
-	prompt.get(['email'], function (err, result) {
-		if (err) throw err;
-
+	prompt.get(['email'], function (err, p) {
 		var post_data = JSON.stringify({
-			email: result.email
+			email: p.email
 		});
 
 		with_token(function(token){
@@ -74,14 +87,55 @@ function user_list(){
 	});
 }
 
-function auth(){
+function change_password(){
 	prompt.start();
-	prompt.get(['email', 'password'], function (err, result) {
-		if (err) throw err;
+	prompt.get({
+		properties: {
+			new_password: {
+				hidden: true,
+				required: true,
+				description: 'new'
+			},
+			confirm: password_schema
+		}
+	}, function (err, p) {
+
+		//TODO:Stan validate new and old match
 
 		var post_data = JSON.stringify({
-			email: result.email,
-			password: result.password
+			new_password: p.new_password
+		});
+
+		with_token(function(token){
+			var req = post_request({
+				host: 'localhost',
+				port: 8000,
+				path: '/user/password',
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Content-Length': post_data.length,
+					'Cookie': 'auth=' + token
+				}
+			});
+
+			req.write(post_data);
+			req.end();
+		});
+	});
+}
+
+function auth(){
+	prompt.start();
+	prompt.get({
+		properties: {
+			email: email_schema,
+			password: password_schema
+		}
+	}, function (err, p) {
+		var post_data = JSON.stringify({
+			email: p.email,
+			password: p.password
 		});
 
 		var req = post_request({
@@ -93,6 +147,11 @@ function auth(){
 				'Content-Type': 'application/json',
 				'Content-Length': post_data.length
 			}
+		}, function(result){
+			if(result['result'] == 'force_password_change'){
+				console.log("Password change required.");
+				change_password();
+			}
 		});
 
 		req.write(post_data);
@@ -100,6 +159,28 @@ function auth(){
 	});
 }
 
+function logout(args){
+
+	with_token(function(token){
+		var req = post_request({
+			host: 'localhost',
+			port: 8000,
+			path: '/logout',
+			method: 'POST',
+			headers: {
+					'Content-Type': 'application/json',
+					'Cookie': 'auth=' + token
+				}
+		});
+
+		// write data to request body
+		req.write('data\n');
+		req.write('data\n');
+		req.end();
+	});
+}
+
+//TODO:Stan Flip to GET
 function search(args){
 
 	with_token(function(token){
