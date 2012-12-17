@@ -22,5 +22,5 @@ function sendEmail(to, subject, body) {
 		 from:    "Log-o",
 		 to:      to,
 		 subject: subject
-	}, function(err, message) { console.log(err || message); });
+	}, function(err, message) { if (err) console.log(err); });
 }

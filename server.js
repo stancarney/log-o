@@ -288,25 +288,30 @@ function is_auth(req, res, callback) {
 	var cookies = new Cookies( req, res );
 	var token = cookies.get('auth');
 
-	db.collection('users', function(err, collection) {
-		collection.findOne({token: token}, function(err, user){
-			if(!err && user){
-				var url_parts = url.parse(req.url, true);
-				if(user.force_password_change && url_parts.pathname != '/user/password') {
-						send_message("User must change password: " + user.email + " IP: " + req.connection.remoteAddress);
-						write_response_message(res, 200, "force_password_change2");
+	if(!token){
+		send_message("Expired or invalid token used. IP: " + req.connection.remoteAddress);
+		write_response_message(res, 401, "auth_failed");
+	} else {
+		db.collection('users', function(err, collection) {
+			collection.findOne({token: token}, function(err, user){
+				if(!err && user){
+					var url_parts = url.parse(req.url, true);
+					if(user.force_password_change && url_parts.pathname != '/user/password') {
+							send_message("User must change password: " + user.email + " IP: " + req.connection.remoteAddress);
+							write_response_message(res, 200, "force_password_change2");
+					} else {
+						set_auth_token(req, res, user);
+						collection.save(user);
+						callback(user);
+					}
 				} else {
-					set_auth_token(req, res, user);
-					collection.save(user);
-					callback(user);
+					if(err) console.log(err);
+					send_message("Expired or invalid token used. IP: " + req.connection.remoteAddress);
+					write_response_message(res, 401, "auth_failed");
 				}
-			} else {
-				if(err) console.log(err);
-				send_message("Expired or invalid token used. IP: " + req.connection.remoteAddress);
-				write_response_message(res, 401, "auth_failed");
-			}
+			});
 		});
-	});
+	}
 }
 
 function parse_post(req, res, callback) {
