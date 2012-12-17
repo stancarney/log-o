@@ -22,12 +22,11 @@ switch(process.argv[2]) {
 
 function user_add(){
 	prompt.start();
-	prompt.get(['email', 'password'], function (err, result) {
+	prompt.get(['email'], function (err, result) {
 		if (err) throw err;
 
 		var post_data = JSON.stringify({
-			email: result.email,
-			password: result.password
+			email: result.email
 		});
 
 		with_token(function(token){

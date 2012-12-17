@@ -17,7 +17,9 @@ var syslogParser = require('glossy').Parse
 		, crypto = require('crypto')
 		, os = require('os')
 		, Cookies = require('cookies')
-		, querystring = require('querystring');
+		, querystring = require('querystring')
+		, password = require('password')
+		, email = require('./email.js');
 
 moment.lang('en');
 
@@ -131,12 +133,13 @@ function user_add(req, res, url_parts){
 		is_auth(req, res, function(user){
 			if(is_valid_email(res.post['email'])){
 				db.collection('users', function(err, collection) {
-					collection.save({email: res.post['email'], password: res.post['password']}, {safe: true}, function(err, result){
+					collection.save({email: res.post['email'], password: password(3)}, {safe: true}, function(err, result){
 						if(err) {
 							res.writeHead(409, {'Content-Type': 'application/json'});
 							res.write(JSON.stringify({"result": "User address already exists."}));
 							res.end();
 						} else {
+							email.send_welcome(result.email, result.password);
 							res.writeHead(200, {'Content-Type': 'application/json'});
 							res.write(JSON.stringify({"result": "User successfully added."}));
 							res.end();

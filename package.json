@@ -13,7 +13,9 @@
     "nconf": "*",
     "cookies": "*",
     "querystring": "*",
-    "prompt": "*"
+    "prompt": "*",
+    "password": "*",
+    "emailjs": "*"
   },
   "license": "GPLv3",
   "engine": {
