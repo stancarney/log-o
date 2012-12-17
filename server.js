@@ -90,6 +90,9 @@ http.createServer(function (req, res) {
 		case '/user/list':
 			user_list(req, res, url_parts);
 			break;
+		case '/user/reset':
+			user_reset(req, res, url_parts);
+			break;
 		case '/user/password':
 			change_password(req, res, url_parts);
 			break;
@@ -133,12 +136,12 @@ function user_add(req, res, url_parts){
 		is_auth(req, res, function(user){
 			if(is_valid_email(res.post['email'])){
 				db.collection('users', function(err, collection) {
-					collection.save({email: res.post['email'], password: password(3), force_password_change: true}, {safe: true}, function(err, result){
+					collection.save({email: res.post['email'], password: password(3), force_password_change: true}, {safe: true}, function(err, new_user){
 						if(err) {
 							write_response_message(res, 409, "address_exists");
 						} else {
 							send_message("User added: " + res.post['email'] + " by: " + user.email + " IP: " + req.connection.remoteAddress);
-							email.send_welcome(result.email, result.password);
+							email.send_welcome(new_user.email, new_user.password);
 							write_response_message(res, 200, "success");
 						}
 					});
@@ -162,6 +165,27 @@ function user_list(req, res, url_parts){
 					res.write(JSON.stringify(u));
 					res.end();
 				}
+			});
+		});
+	});
+}
+
+function user_reset(req, res, url_parts){
+	parse_post(req, res, function(){
+		is_auth(req, res, function(user){
+			db.collection('users', function(err, collection) {
+				collection.findOne({email: res.post['email']}, function(err, reset_user){
+					if(!err && reset_user) {
+						reset_user.force_password_change = true;
+						reset_user.password = password(3);
+						send_message("User reset: " + reset_user.email + " by: " + user.email + " IP: " + req.connection.remoteAddress);
+						email.send_welcome(reset_user.email, reset_user.password);
+						collection.save(reset_user);
+						write_response_message(res, 200, "success");
+					} else {
+						write_response_message(res, 404, "user_not_found");
+					}
+				});
 			});
 		});
 	});

@@ -25,6 +25,9 @@ switch(process.argv[2]) {
 	case 'userlist':
     user_list();
   break;
+	case 'reset':
+    user_reset();
+  break;
 	case 'passwd':
     change_password();
   break;
@@ -84,6 +87,32 @@ function user_list(){
 
 		req.write(post_data);
 		req.end();
+	});
+}
+
+function user_reset(){
+	prompt.start();
+	prompt.get(['email'], function (err, p) {
+		var post_data = JSON.stringify({
+			email: p.email
+		});
+
+		with_token(function(token){
+			var req = post_request({
+				host: 'localhost',
+				port: 8000,
+				path: '/user/reset',
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Content-Length': post_data.length,
+					'Cookie': 'auth=' + token
+				}
+			});
+
+			req.write(post_data);
+			req.end();
+		});
 	});
 }
 
