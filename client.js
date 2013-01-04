@@ -4,6 +4,9 @@ var http = require('http')
 	, fs = require('fs')
 	, querystring = require('querystring');
 
+var log_server = 'localhost';
+var log_server_port = 8000;
+
 var token_file = process.env['HOME'] + '/.log-o.token';
 
 var email_schema = {
@@ -47,8 +50,8 @@ function user_add(){
 
 		with_token(function(token){
 			var req = post_request({
-				host: 'localhost',
-				port: 8000,
+				host: log_server,
+				port: log_server_port,
 				path: '/user/add',
 				method: 'POST',
 				headers: {
@@ -69,8 +72,8 @@ function user_list(){
 
 	with_token(function(token){
 		var req = post_request({
-			host: 'localhost',
-			port: 8000,
+			host: log_server,
+			port: log_server_port,
 			path: '/user/list',
 			method: 'POST',
 			headers: {
@@ -99,8 +102,8 @@ function user_reset(){
 
 		with_token(function(token){
 			var req = post_request({
-				host: 'localhost',
-				port: 8000,
+				host: log_server,
+				port: log_server_port,
 				path: '/user/reset',
 				method: 'POST',
 				headers: {
@@ -137,8 +140,8 @@ function change_password(){
 
 		with_token(function(token){
 			var req = post_request({
-				host: 'localhost',
-				port: 8000,
+				host: log_server,
+				port: log_server_port,
 				path: '/user/password',
 				method: 'POST',
 				headers: {
@@ -168,8 +171,8 @@ function auth(){
 		});
 
 		var req = post_request({
-			host: 'localhost',
-			port: 8000,
+			host: log_server,
+			port: log_server_port,
 			path: '/auth',
 			method: 'POST',
 			headers: {
@@ -192,8 +195,8 @@ function logout(args){
 
 	with_token(function(token){
 		var req = post_request({
-			host: 'localhost',
-			port: 8000,
+			host: log_server,
+			port: log_server_port,
 			path: '/logout',
 			method: 'POST',
 			headers: {
@@ -214,7 +217,7 @@ function search(args){
 
 	with_token(function(token){
 		var req = post_request({
-			host: 'localhost',
+			host: log_server,
 			port: 8000,
 			path: '/search?' + args.join('&'),
 			method: 'POST',
