@@ -1,77 +1,15 @@
-var nconf = require('nconf');
-nconf.argv()
-       .env()
-       .file({ file: "config.json" });
-
-var syslogParser = require('glossy').Parse
-		, syslogProducer = require('glossy').Produce
-		, glossy = new syslogProducer({ type: 'BSD' })
-		, fs = require('fs')
-		, dgram  = require("dgram")
+var db = require('./db.js')
+    , syslog = require('./syslog.js')
+		, udp = require('./udp.js')
+    , tcp = require('./tcp.js')
 		, http = require('http')
 		, url = require('url')
-		, server = dgram.createSocket("udp4")
-		, mongo = require('mongodb')
-		, db = new mongo.Db(nconf.get('db_name'), new mongo.Server(nconf.get('db_host'), nconf.get('db_port'), {}), {})
-		, moment = require('moment')
 		, crypto = require('crypto')
 		, os = require('os')
 		, Cookies = require('cookies')
 		, querystring = require('querystring')
 		, password = require('password')
 		, email = require('./email.js');
-
-moment.lang('en');
-
-var hostname = os.hostname();
-
-db.open(function(err, data) {
-	if(data) {
-		data.authenticate(nconf.get('db_username'), nconf.get('db_password'), function(err2, data2) {
-			if(err2) console.log(err2);
-			db.collection('users', function(err, collection) {
-				collection.ensureIndex({keywords : 1});
-				collection.ensureIndex({email : 1}, {unique : true});
-			});
-		});
-	} else {
-		console.log(err);
-	}
-});
-
-server.on("message", function(rawMessage) {
-	try {
-    syslogParser.parse(rawMessage.toString('utf8', 0), function(parsedMessage){
-				db.collection('messages', function(err, collection) {
-
-					collection.find({}, {'hash':1}).sort({_id:-1}).limit(1).toArray(function(err, last_message){
-						if(!err && last_message){
-							//add additional parts first.
-							parsedMessage['timestamp'] = new Date();
-							parsedMessage['hostname'] = hostname;
-							parsedMessage['keywords'] = parsedMessage['message'].toLowerCase().split(" ");
-							parsedMessage['message_hash'] = crypto.createHash('sha1').update(parsedMessage['message']).digest("hex");
-							parsedMessage['previous_hash'] = last_message[0] ? last_message[0].hash : '';
-							parsedMessage['hash'] = crypto.createHash('sha1').update(JSON.stringify(parsedMessage)).digest("hex");
-
-							collection.save(parsedMessage);
-						} else {
-							console.log('Err', err);
-						}
-					});
-				});
-      });
-		} catch(e) {
-			console.log('Could not save message. [' + rawMessage + '] ' + e);
-		}
-});
-
-server.on("listening", function() {
-	var address = server.address();
-	send_message("Server started on " + address.address + ":" + address.port);
-});
-
-server.bind(5140);
 
 //skip=20
 //limit=100
@@ -115,15 +53,15 @@ function auth(req, res, url_parts){
 					set_auth_token(req, res, user);
 					collection.save(user);
 					if(user.force_password_change){
-						send_message("Successful Login (force password change): " + res.post['email'] + " IP: " + req.connection.remoteAddress);
+            syslog.send_message("Successful Login (force password change): " + res.post['email'] + " IP: " + req.connection.remoteAddress);
 						write_response_message(res, 200, "force_password_change");
 					} else {
-						send_message("Successful Login: " + res.post['email'] + " IP: " + req.connection.remoteAddress);
+            syslog.send_message("Successful Login: " + res.post['email'] + " IP: " + req.connection.remoteAddress);
 						write_response_message(res, 200, "success");
 					}
 				} else {
 					if(err) console.log(err);
-					send_message("Failed Login: " + res.post['email'] + " IP: " + req.connection.remoteAddress);
+          syslog.send_message("Failed Login: " + res.post['email'] + " IP: " + req.connection.remoteAddress);
 					write_response_message(res, 401, "auth_failed");
 				}
 			});
@@ -140,7 +78,7 @@ function user_add(req, res, url_parts){
 						if(err) {
 							write_response_message(res, 409, "address_exists");
 						} else {
-							send_message("User added: " + res.post['email'] + " by: " + user.email + " IP: " + req.connection.remoteAddress);
+              syslog.send_message("User added: " + res.post['email'] + " by: " + user.email + " IP: " + req.connection.remoteAddress);
 							email.send_welcome(new_user.email, new_user.password);
 							write_response_message(res, 200, "success");
 						}
@@ -178,7 +116,7 @@ function user_reset(req, res, url_parts){
 					if(!err && reset_user) {
 						reset_user.force_password_change = true;
 						reset_user.password = password(3);
-						send_message("User reset: " + reset_user.email + " by: " + user.email + " IP: " + req.connection.remoteAddress);
+            syslog.send_message("User reset: " + reset_user.email + " by: " + user.email + " IP: " + req.connection.remoteAddress);
 						email.send_welcome(reset_user.email, reset_user.password);
 						collection.save(reset_user);
 						write_response_message(res, 200, "success");
@@ -197,7 +135,7 @@ function change_password(req, res, url_parts){
 			db.collection('users', function(err, collection) {
 				user.password = res.post['new_password'];
 				user.force_password_change = false;
-				send_message("Successful Password Change: " + user.email + " IP: " + req.connection.remoteAddress);
+        syslog.send_message("Successful Password Change: " + user.email + " IP: " + req.connection.remoteAddress);
 				collection.save(user);
 				write_response_message(res, 200, "success");
 			});
@@ -208,7 +146,7 @@ function change_password(req, res, url_parts){
 function search(req, res, url_parts){
 	is_auth(req, res, function(user){
 		db.collection('users', function(err, collection) {
-			send_message(user.email + ' viewed the logs with: ' + req.url.toString());
+      syslog.send_message(user.email + ' viewed the logs with: ' + req.url.toString());
 			db.collection('messages', function(err, collection) {
 				var query = collection.find(url_parts.query).sort({timestamp:-1});
 				var skip = pop(url_parts.query, 'skip');
@@ -249,31 +187,10 @@ function logout(req, res, url_parts){
 			//Set auth token but don't send it back via the cookie
 			user['token'] = crypto.randomBytes(Math.ceil(256)).toString('base64');
 			user['last_access'] = new Date();
-			send_message("Logout: " + user.email + " IP: " + req.connection.remoteAddress);
+      syslog.send_message("Logout: " + user.email + " IP: " + req.connection.remoteAddress);
 			collection.save(user);
 			write_response_message(res, 200, "success");
 		});
-	});
-}
-
-function send_message(message){
-	var address = server.address();
-
-	var msg = glossy.produce({
-		facility: 'local4',
-		severity: 'info',
-		host: hostname,
-		app_id: 'log-o',
-		pid: process.id,
-		date: new Date(),
-		message: message
-	});
-	bmsg = new Buffer(msg);
-
-	var client = dgram.createSocket("udp4");
-	client.send(bmsg, 0, bmsg.length, 5140, "0.0.0.0", function(err, bytes) {
-		if(err) console.log("Could not log message: " + err);
-		client.close();
 	});
 }
 
@@ -289,7 +206,7 @@ function is_auth(req, res, callback) {
 	var token = cookies.get('auth');
 
 	if(!token){
-		send_message("Expired or invalid token used. IP: " + req.connection.remoteAddress);
+    syslog.send_message("Expired or invalid token used. IP: " + req.connection.remoteAddress);
 		write_response_message(res, 401, "auth_failed");
 	} else {
 		db.collection('users', function(err, collection) {
@@ -297,8 +214,8 @@ function is_auth(req, res, callback) {
 				if(!err && user){
 					var url_parts = url.parse(req.url, true);
 					if(user.force_password_change && url_parts.pathname != '/user/password') {
-							send_message("User must change password: " + user.email + " IP: " + req.connection.remoteAddress);
-							write_response_message(res, 200, "force_password_change2");
+            syslog.send_message("User must change password: " + user.email + " IP: " + req.connection.remoteAddress);
+						write_response_message(res, 200, "force_password_change2");
 					} else {
 						set_auth_token(req, res, user);
 						collection.save(user);
@@ -306,7 +223,7 @@ function is_auth(req, res, callback) {
 					}
 				} else {
 					if(err) console.log(err);
-					send_message("Expired or invalid token used. IP: " + req.connection.remoteAddress);
+          syslog.send_message("Expired or invalid token used. IP: " + req.connection.remoteAddress);
 					write_response_message(res, 401, "auth_failed");
 				}
 			});

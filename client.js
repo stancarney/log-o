@@ -228,7 +228,7 @@ function search(args){
 		}, function(result){
 			for (var index in result){
 				var r = result[index];
-				console.log('[' + moment(r['timestamp']).format('MMM D YYYY, HH:mm:ss') + ' ' + r['facility'] + ' ' + r['severity'] + ']     ' + r['hash'] + '   ' + r['host'] + '   ' + r['message']);
+				console.log('[' + moment(r['timestamp']).format('MMM D YYYY, HH:mm:ss') + ' ' + r['facility'] + ' ' + r['severity'] + ']\t' + r['hash'] + '   ' + r['host'] + '   ' + r['message']);
 			}
 		});
 

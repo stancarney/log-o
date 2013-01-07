@@ -1,0 +1,18 @@
+var mongo = require('mongodb')
+		, db = new mongo.Db('log-o', new mongo.Server('localhost', 27017, {}), {});
+
+db.open(function(err, data) {
+	if(data) {
+		data.authenticate('log-o', 'log-o', function(err2, data2) {
+			if(err2) console.log(err2);
+			db.collection('users', function(err, collection) {
+				collection.ensureIndex({keywords : 1});
+				collection.ensureIndex({email : 1}, {unique : true});
+			});
+		});
+	} else {
+		console.log(err);
+	}
+});
+
+module.exports = db;
