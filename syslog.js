@@ -51,7 +51,6 @@ exports.send_message = function (message){
   if(config.get('tcp')){
     var client = new net.Socket();
     client.connect(config.get('tcp_port'), '0.0.0.0', function() {
-      console.log('TCP msg');
       client.write(msg);
       client.destroy();
     });
@@ -59,7 +58,6 @@ exports.send_message = function (message){
     var client = dgram.createSocket("udp4");
       client.send(bmsg, 0, bmsg.length, 5140, "0.0.0.0", function(err, bytes) {
         if(err) console.log("Could not log message: " + err);
-        console.log('UDP msg');
         client.close();
       });
   }
