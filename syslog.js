@@ -16,14 +16,24 @@ exports.save = function(rawMessage) {
   
           collection.find({}, {'hash':1}).sort({_id:-1}).limit(1).toArray(function(err, last_message){
             if(!err && last_message){
+
+              //This happens when the message could not be parsed. In that case we swap in the originalMessage
+              if (parsedMessage['message'] == undefined) {
+                parsedMessage['message'] = parsedMessage['originalMessage'];
+                console.log('Message could not be parsed: ' + parsedMessage['originalMessage']);
+              }
+
+              //drop any color codes like the ones rootsh likes to add.
+              parsedMessage['message'] = parsedMessage['message'].replace(/#\d(3)[\[m3;\d]*/g, '');
+
               //add additional parts first.
-              parsedMessage['timestamp'] = new Date();
+              parsedMessage['timestamp'] = Date.now();
               parsedMessage['hostname'] = os.hostname();
               parsedMessage['keywords'] = parsedMessage['message'].toLowerCase().split(" ");
               parsedMessage['message_hash'] = crypto.createHash('sha1').update(parsedMessage['message']).digest("hex");
               parsedMessage['previous_hash'] = last_message[0] ? last_message[0].hash : '';
               parsedMessage['hash'] = crypto.createHash('sha1').update(JSON.stringify(parsedMessage)).digest("hex");
-  
+
               collection.save(parsedMessage);
             } else {
               console.log('Err', err);
@@ -44,14 +54,13 @@ exports.send_message = function (message){
     app_id: 'log-o',
     pid: process.id,
     date: new Date(),
-    message: message
+    message: message + '\n'
   });
   bmsg = new Buffer(msg);
 
   if(config.get('tcp')){
     var client = new net.Socket();
     client.connect(config.get('tcp_port'), '0.0.0.0', function() {
-      console.log('TCP msg');
       client.write(msg);
       client.destroy();
     });
@@ -59,7 +68,6 @@ exports.send_message = function (message){
     var client = dgram.createSocket("udp4");
       client.send(bmsg, 0, bmsg.length, 5140, "0.0.0.0", function(err, bytes) {
         if(err) console.log("Could not log message: " + err);
-        console.log('UDP msg');
         client.close();
       });
   }

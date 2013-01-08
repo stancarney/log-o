@@ -4,9 +4,9 @@
 	"smtp_host": "mail",
 	"smtp_port": 587,
 	"smtp_ssl": false,
-	"smtp_tls": true
+	"smtp_tls": true,
 	"udp": true,
 	"udp_port": 5140,
 	"tcp": true,
-    "tcp_port": 5140
+	"tcp_port": 5140
 }
