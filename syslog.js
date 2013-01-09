@@ -53,7 +53,7 @@ exports.send_message = function (message){
     host: os.hostname(),
     app_id: 'log-o',
     pid: process.id,
-    date: new Date(),
+    date: Date.now(),
     message: message + '\n'
   });
   bmsg = new Buffer(msg);
