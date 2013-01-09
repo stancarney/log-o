@@ -11,7 +11,11 @@ var db = require('./db.js')
 
 exports.save = function(rawMessage) {
   try {
-    syslogParser.parse(rawMessage.toString('utf8', 0), function(parsedMessage){
+
+    //remove bash color chars
+    rawMessage = rawMessage.replace(/\x1B\[([0-9]{1,3}((;[0-9]{1,3})*)?)?[m|K]/g, '');
+
+    syslogParser.parse(rawMessage, function(parsedMessage){
         db.collection('messages', function(err, collection) {
   
           collection.find({}, {'hash':1}).sort({_id:-1}).limit(1).toArray(function(err, last_message){
@@ -22,9 +26,6 @@ exports.save = function(rawMessage) {
                 parsedMessage['message'] = parsedMessage['originalMessage'];
                 console.log('Message could not be parsed: ' + parsedMessage['originalMessage']);
               }
-
-              //drop any color codes like the ones rootsh likes to add.
-              parsedMessage['message'] = parsedMessage['message'].replace(/#\d(3)[\[m3;\d]*/g, '');
 
               //add additional parts first.
               parsedMessage['timestamp'] = Date.now();

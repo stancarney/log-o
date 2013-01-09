@@ -10,7 +10,6 @@ if(config.get('tcp')) {
 
   server.on('connection', function(sock) {
     var buffer = '';
-    sock.setEncoding('UTF8');
 
     sock.on('data', function(data) {
       buffer += data;
