@@ -12,8 +12,8 @@ var db = require('./db.js')
 exports.save = function(rawMessage) {
   try {
 
-    //remove bash color chars
-    rawMessage = rawMessage.replace(/\x1B\[([0-9]{1,3}((;[0-9]{1,3})*)?)?[m|K]/g, '');
+    //remove bash color chars and BEL characters. The #033 is there because sometimes the characters have already been escaped.
+    rawMessage = rawMessage.replace(/(\x1B|#033)\[([0-9]{1,3}((;[0-9]{1,3})*)?)?[m|K]/g, '').replace(/(\x07|#007)/g, '');
 
     syslogParser.parse(rawMessage, function(parsedMessage){
         db.collection('messages', function(err, collection) {
