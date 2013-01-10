@@ -148,7 +148,7 @@ function search(req, res, url_parts){
 		db.collection('users', function(err, collection) {
       syslog.send_message(user.email + ' viewed the logs with: ' + req.url.toString());
 			db.collection('messages', function(err, collection) {
-				var query = collection.find(url_parts.query).sort({timestamp:-1});
+				var query = collection.find(url_parts.query).sort({time:-1, timestamp:-1});
 				var skip = pop(url_parts.query, 'skip');
 				var limit = pop(url_parts.query, 'limit');
 
@@ -176,7 +176,7 @@ function search(req, res, url_parts){
 
 function set_auth_token(req, res, user){
 	user['token'] = crypto.randomBytes(Math.ceil(256)).toString('base64');
-	user['last_access'] = new Date();
+	user['last_access'] = Date.now()
 	var cookies = new Cookies( req, res );
 	cookies.set('auth', user['token'], { httpOnly: true });
 }
@@ -186,7 +186,7 @@ function logout(req, res, url_parts){
 		db.collection('users', function(err, collection) {
 			//Set auth token but don't send it back via the cookie
 			user['token'] = crypto.randomBytes(Math.ceil(256)).toString('base64');
-			user['last_access'] = new Date();
+			user['last_access'] = Date.now()
       syslog.send_message("Logout: " + user.email + " IP: " + req.connection.remoteAddress);
 			collection.save(user);
 			write_response_message(res, 200, "success");
