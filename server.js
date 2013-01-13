@@ -148,7 +148,7 @@ function search(req, res, url_parts){
 		db.collection('users', function(err, collection) {
       syslog.send_message(user.email + ' viewed the logs with: ' + req.url.toString());
 			db.collection('messages', function(err, collection) {
-				var query = collection.find(url_parts.query).sort({time:-1, timestamp:-1});
+				var query = collection.find(url_parts.query).sort({time:-1, seq_no:-1});
 				var skip = pop(url_parts.query, 'skip');
 				var limit = pop(url_parts.query, 'limit');
 
