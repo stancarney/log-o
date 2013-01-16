@@ -9,7 +9,7 @@ var db = require('./db.js')
     , dgram  = require('dgram')
     , net = require('net');
 
-exports.save = function(rawMessage) {
+exports.save = function(rawMessage, seq_no) {
   try {
 
     //remove bash color chars and BEL characters. The #033 is there because sometimes the characters have already been escaped.
@@ -29,6 +29,7 @@ exports.save = function(rawMessage) {
 
               //add additional parts first.
               parsedMessage['timestamp'] = Date.now();
+              parsedMessage['seq_no'] = seq_no ? seq_no : 0;
               parsedMessage['hostname'] = os.hostname();
               parsedMessage['keywords'] = parsedMessage['message'].toLowerCase().split(" ");
               parsedMessage['message_hash'] = crypto.createHash('sha1').update(parsedMessage['message']).digest("hex");
