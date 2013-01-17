@@ -7,11 +7,12 @@ var db = require('./db.js')
     , os = require('os')
     , crypto = require('crypto')
     , dgram  = require('dgram')
-    , net = require('net');
+    , net = require('net')
+    , microtime = require('microtime');
 
-exports.save = function(rawMessage, seq_no) {
+exports.save = function(rawMessage) {
+  var now = microtime.now();
   try {
-
     //remove bash color chars and BEL characters. The #033 is there because sometimes the characters have already been escaped.
     rawMessage = rawMessage.replace(/(\x1B|#033)\[([0-9]{1,3}((;[0-9]{1,3})*)?)?[m|K]/g, '').replace(/(\x07|#007)/g, '');
 
@@ -28,10 +29,9 @@ exports.save = function(rawMessage, seq_no) {
               }
 
               //add additional parts first.
-              parsedMessage['timestamp'] = Date.now();
-              parsedMessage['seq_no'] = seq_no ? seq_no : 0;
+              parsedMessage['timestamp'] = now;
               parsedMessage['hostname'] = os.hostname();
-              parsedMessage['keywords'] = parsedMessage['message'].toLowerCase().split(" ");
+              parsedMessage['keywords'] = remove_occurrence(parsedMessage['message'].toLowerCase().split(' '), ' ');
               parsedMessage['message_hash'] = crypto.createHash('sha1').update(parsedMessage['message']).digest("hex");
               parsedMessage['previous_hash'] = last_message[0] ? last_message[0].hash : '';
               parsedMessage['hash'] = crypto.createHash('sha1').update(JSON.stringify(parsedMessage)).digest("hex");
@@ -55,7 +55,7 @@ exports.send_message = function (message){
     host: os.hostname(),
     app_id: 'log-o',
     pid: process.id,
-    date: Date.now(),
+    date: new Date(),
     message: message + '\n'
   });
   bmsg = new Buffer(msg);
@@ -72,5 +72,13 @@ exports.send_message = function (message){
         if(err) console.log("Could not log message: " + err);
         client.close();
       });
+  }
+}
+
+function remove_occurrence (array, item){
+  for (var i=array.length-1; i>=0; i--) {
+      if (array[i] === item) {
+          array.splice(i, 1);
+      }
   }
 }

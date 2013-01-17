@@ -15,7 +15,8 @@
     "querystring": "*",
     "prompt": "*",
     "password": "*",
-    "emailjs": "*"
+    "emailjs": "*",
+    "microtime": "*"
   },
   "license": "GPLv3",
   "engine": {

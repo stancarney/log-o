@@ -10,14 +10,12 @@ if(config.get('udp')) {
   var buffer = '';
 
   server.on('message', function(data) {
-    var seq_no = 0;
     buffer += data;
     if (buffer.indexOf(terminator) >= 0) {
       var msgs = buffer.split(terminator);
       for (var i = 0; i < msgs.length - 1; ++i) {
         var msg = msgs[i];
-        if (msg != '\n') syslog.save(msg, seq_no);
-        seq_no = ++seq_no
+        if (msg != '\n') syslog.save(msg);
       }
       buffer = msgs[msgs.length - 1];
     }
