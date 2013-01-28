@@ -40,7 +40,7 @@ exports.save = function(rawMessage) {
               //add additional parts first.
               parsed_message['timestamp'] = now;
               parsed_message['hostname'] = os.hostname();
-              parsed_message['keywords'] = remove_occurrence(parsed_message['message'].toLowerCase().split(' '), '');
+              parsed_message['keywords'] = clean_keywords(parsed_message['message'].toLowerCase().split(' '));
               parsed_message['message_hash'] = crypto.createHash('sha1').update(parsed_message['message']).digest("hex");
               parsed_message['previous_hash'] = last_message[0] ? last_message[0].hash : '';
               parsed_message['hash'] = crypto.createHash('sha1').update(JSON.stringify(parsed_message)).digest("hex");
@@ -57,7 +57,7 @@ exports.save = function(rawMessage) {
     }
 };
 
-exports.send_message = function (message){
+exports.send_message = function (message) {
   var msg = glossy.produce({
     facility: 'local4',
     severity: 'info',
@@ -84,11 +84,16 @@ exports.send_message = function (message){
   }
 }
 
-function remove_occurrence (array, item){
-  for (var i=array.length-1; i>=0; i--) {
-      if (array[i] === item) {
-          array.splice(i, 1);
-      }
+function clean_keywords(array) {
+  for (var i = array.length - 1; i >= 0; i--) {
+    var punct = /^[^\d\w\s]+|[^\d\w\s]+$/g;
+    if (array[i].match(punct, '')){
+      array[i] = array[i].replace(punct, '');
+    }
+
+    if (array[i] === '') {
+      array.splice(i, 1);
+    }
   }
   return array;
 }
