@@ -31,7 +31,7 @@ exports.save = function(rawMessage) {
               //add additional parts first.
               parsedMessage['timestamp'] = now;
               parsedMessage['hostname'] = os.hostname();
-              parsedMessage['keywords'] = remove_occurrence(parsedMessage['message'].toLowerCase().split(' '), ' ');
+              parsedMessage['keywords'] = remove_occurrence(parsedMessage['message'].toLowerCase().split(' '), '');
               parsedMessage['message_hash'] = crypto.createHash('sha1').update(parsedMessage['message']).digest("hex");
               parsedMessage['previous_hash'] = last_message[0] ? last_message[0].hash : '';
               parsedMessage['hash'] = crypto.createHash('sha1').update(JSON.stringify(parsedMessage)).digest("hex");
@@ -81,4 +81,5 @@ function remove_occurrence (array, item){
           array.splice(i, 1);
       }
   }
+  return array;
 }
