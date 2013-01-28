@@ -8,7 +8,8 @@ var db = require('./db.js')
     , crypto = require('crypto')
     , dgram  = require('dgram')
     , net = require('net')
-    , microtime = require('microtime');
+    , microtime = require('microtime')
+    , preprocessors = require('./preprocessors.js');
 
 exports.save = function(rawMessage) {
   var now = microtime.now();
@@ -16,27 +17,35 @@ exports.save = function(rawMessage) {
     //remove bash color chars and BEL characters. The #033 is there because sometimes the characters have already been escaped.
     rawMessage = rawMessage.replace(/(\x1B|#033)\[([0-9]{1,3}((;[0-9]{1,3})*)?)?[m|K]/g, '').replace(/(\x07|#007)/g, '');
 
-    syslogParser.parse(rawMessage, function(parsedMessage){
+    syslogParser.parse(rawMessage, function(parsed_message){
         db.collection('messages', function(err, collection) {
   
           collection.find({}, {'hash':1}).sort({_id:-1}).limit(1).toArray(function(err, last_message){
             if(!err && last_message){
 
               //This happens when the message could not be parsed. In that case we swap in the originalMessage
-              if (parsedMessage['message'] == undefined) {
-                parsedMessage['message'] = parsedMessage['originalMessage'];
-                console.log('Message could not be parsed: ' + parsedMessage['originalMessage']);
+              if (parsed_message['message'] == undefined) {
+                parsed_message['message'] = parsed_message['originalMessage'];
+                console.log('Message could not be parsed: ' + parsed_message['originalMessage']);
+              }
+
+              for (var i in preprocessors.module_holder) {
+                try {
+                  parsed_message = preprocessors.module_holder[i](parsed_message);
+                } catch (e) {
+                  console.log('Preprocessor threw an exception. [' + preprocessors.module_holder[i] + '] ', e);
+                }
               }
 
               //add additional parts first.
-              parsedMessage['timestamp'] = now;
-              parsedMessage['hostname'] = os.hostname();
-              parsedMessage['keywords'] = remove_occurrence(parsedMessage['message'].toLowerCase().split(' '), '');
-              parsedMessage['message_hash'] = crypto.createHash('sha1').update(parsedMessage['message']).digest("hex");
-              parsedMessage['previous_hash'] = last_message[0] ? last_message[0].hash : '';
-              parsedMessage['hash'] = crypto.createHash('sha1').update(JSON.stringify(parsedMessage)).digest("hex");
+              parsed_message['timestamp'] = now;
+              parsed_message['hostname'] = os.hostname();
+              parsed_message['keywords'] = remove_occurrence(parsed_message['message'].toLowerCase().split(' '), '');
+              parsed_message['message_hash'] = crypto.createHash('sha1').update(parsed_message['message']).digest("hex");
+              parsed_message['previous_hash'] = last_message[0] ? last_message[0].hash : '';
+              parsed_message['hash'] = crypto.createHash('sha1').update(JSON.stringify(parsed_message)).digest("hex");
 
-              collection.save(parsedMessage);
+              collection.save(parsed_message);
             } else {
               console.log('Err', err);
             }
@@ -44,7 +53,7 @@ exports.save = function(rawMessage) {
         });
       });
     } catch(e) {
-        console.log('Could not save message. [' + rawMessage + '] ' + e);
+        console.log('Could not save message. [' + rawMessage + '] ', e);
     }
 };
 
