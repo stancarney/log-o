@@ -24,6 +24,22 @@ db.open(function (err, data) {
         collection.ensureIndex({host: 1, facility: 1}, function (err, result) {
           assert.equal(null, err);
         });
+
+        /*
+            Mongo-Db Capped Collection:
+
+            db.createCollection("messages", { capped : true, size : 85899345920  } ) // 80GB
+
+            - or -
+
+            db.runCommand({"convertToCapped": "messages", size: 85899345920 }) // 80GB
+
+            Expire messages after 1 year:
+
+            collection.ensureIndex( { time: 1 }, { expireAfterSeconds: 31557600 }, function (err, result) { // 365.25 days
+              assert.equal(null, err);
+            })
+         */
       });
     });
   } else {
