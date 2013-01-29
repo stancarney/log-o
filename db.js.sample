@@ -1,18 +1,35 @@
 var mongo = require('mongodb')
-		, db = new mongo.Db('log-o', new mongo.Server('localhost', 27017, {}), {});
+    , db = new mongo.Db('log-o', new mongo.Server('localhost', 27017, {}), {})
+    , assert = require('assert');
 
-db.open(function(err, data) {
-	if(data) {
-		data.authenticate('log-o', 'log-o', function(err2, data2) {
-			if(err2) console.log(err2);
-			db.collection('users', function(err, collection) {
-				collection.ensureIndex({keywords : 1});
-				collection.ensureIndex({email : 1}, {unique : true});
-			});
-		});
-	} else {
-		console.log(err);
-	}
+db.open(function (err, data) {
+  if (data) {
+    data.authenticate('log-o', 'log-o', function (err2, data2) {
+      if (err2) console.log(err2);
+      db.collection('users', function (err, collection) {
+        collection.ensureIndex({email: 1}, {unique: true}, function (err, result) {
+          assert.equal(null, err);
+        });
+      });
+      db.collection('messages', function (err, collection) {
+        collection.ensureIndex({time: -1, timestamp: -1}, function (err, result) {
+          assert.equal(null, err);
+        });
+        collection.ensureIndex({keywords: 1, host: 1}, function (err, result) {
+          assert.equal(null, err);
+        });
+        collection.ensureIndex({host: 1, severity: 1}, function (err, result) {
+          assert.equal(null, err);
+        });
+        collection.ensureIndex({host: 1, facility: 1}, function (err, result) {
+          assert.equal(null, err);
+        });
+      });
+    });
+  } else {
+    console.log(err);
+  }
 });
 
 module.exports = db;
+
