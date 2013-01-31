@@ -7,24 +7,45 @@ var db = require('./db.js')
     , os = require('os')
     , crypto = require('crypto')
     , dgram  = require('dgram')
-    , net = require('net');
+    , net = require('net')
+    , microtime = require('microtime')
+    , preprocessors = require('./preprocessors.js');
 
 exports.save = function(rawMessage) {
+  var now = microtime.now();
   try {
-    syslogParser.parse(rawMessage.toString('utf8', 0), function(parsedMessage){
+    //remove bash color chars and BEL characters. The #033 is there because sometimes the characters have already been escaped.
+    rawMessage = rawMessage.replace(/(\x1B|#033)\[([0-9]{1,3}((;[0-9]{1,3})*)?)?[m|K]/g, '').replace(/(\x07|#007)/g, '');
+
+    syslogParser.parse(rawMessage, function(parsed_message){
         db.collection('messages', function(err, collection) {
   
           collection.find({}, {'hash':1}).sort({_id:-1}).limit(1).toArray(function(err, last_message){
             if(!err && last_message){
+
+              //This happens when the message could not be parsed. In that case we swap in the originalMessage
+              if (parsed_message['message'] == undefined) {
+                parsed_message['message'] = parsed_message['originalMessage'];
+                console.log('Message could not be parsed: ' + parsed_message['originalMessage']);
+              }
+
+              for (var i in preprocessors.module_holder) {
+                try {
+                  parsed_message = preprocessors.module_holder[i](parsed_message);
+                } catch (e) {
+                  console.log('Preprocessor threw an exception. [' + preprocessors.module_holder[i] + '] ', e);
+                }
+              }
+
               //add additional parts first.
-              parsedMessage['timestamp'] = new Date();
-              parsedMessage['hostname'] = os.hostname();
-              parsedMessage['keywords'] = parsedMessage['message'].toLowerCase().split(" ");
-              parsedMessage['message_hash'] = crypto.createHash('sha1').update(parsedMessage['message']).digest("hex");
-              parsedMessage['previous_hash'] = last_message[0] ? last_message[0].hash : '';
-              parsedMessage['hash'] = crypto.createHash('sha1').update(JSON.stringify(parsedMessage)).digest("hex");
-  
-              collection.save(parsedMessage);
+              parsed_message['timestamp'] = now;
+              parsed_message['hostname'] = os.hostname();
+              parsed_message['keywords'] = clean_keywords(parsed_message['message'].toLowerCase().split(' '));
+              parsed_message['message_hash'] = crypto.createHash('sha1').update(parsed_message['message']).digest("hex");
+              parsed_message['previous_hash'] = last_message[0] ? last_message[0].hash : '';
+              parsed_message['hash'] = crypto.createHash('sha1').update(JSON.stringify(parsed_message)).digest("hex");
+
+              collection.save(parsed_message);
             } else {
               console.log('Err', err);
             }
@@ -32,11 +53,11 @@ exports.save = function(rawMessage) {
         });
       });
     } catch(e) {
-        console.log('Could not save message. [' + rawMessage + '] ' + e);
+        console.log('Could not save message. [' + rawMessage + '] ', e);
     }
 };
 
-exports.send_message = function (message){
+exports.send_message = function (message) {
   var msg = glossy.produce({
     facility: 'local4',
     severity: 'info',
@@ -44,7 +65,7 @@ exports.send_message = function (message){
     app_id: 'log-o',
     pid: process.id,
     date: new Date(),
-    message: message
+    message: message + '\n'
   });
   bmsg = new Buffer(msg);
 
@@ -61,4 +82,18 @@ exports.send_message = function (message){
         client.close();
       });
   }
+}
+
+function clean_keywords(array) {
+  for (var i = array.length - 1; i >= 0; i--) {
+    var punct = /^[^\d\w\s]+|[^\d\w\s]+$/g;
+    if (array[i].match(punct, '')){
+      array[i] = array[i].replace(punct, '');
+    }
+
+    if (array[i] === '') {
+      array.splice(i, 1);
+    }
+  }
+  return array;
 }
