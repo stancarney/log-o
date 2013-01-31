@@ -6,19 +6,8 @@ if(config.get('udp')) {
       , server = dgram.createSocket('udp4')
       , syslog = require('./syslog.js');
 
-  var terminator = '\n';
-  var buffer = '';
-
   server.on('message', function(data) {
-    buffer += data;
-    if (buffer.indexOf(terminator) >= 0) {
-      var msgs = buffer.split(terminator);
-      for (var i = 0; i < msgs.length - 1; ++i) {
-        var msg = msgs[i];
-        if (msg != '\n') syslog.save(msg);
-      }
-      buffer = msgs[msgs.length - 1];
-    }
+    syslog.save(data.toString());
   });
   
   server.on('listening', function() {
