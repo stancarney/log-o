@@ -49,7 +49,7 @@ function user_add(){
 		});
 
 		with_token(function(token){
-			var req = post_request({
+			var req = request({
 				host: log_server,
 				port: log_server_port,
 				path: '/user/add',
@@ -71,7 +71,7 @@ function user_list(){
 	var post_data = JSON.stringify({ });
 
 	with_token(function(token){
-		var req = post_request({
+		var req = request({
 			host: log_server,
 			port: log_server_port,
 			path: '/user/list',
@@ -101,7 +101,7 @@ function user_reset(){
 		});
 
 		with_token(function(token){
-			var req = post_request({
+			var req = request({
 				host: log_server,
 				port: log_server_port,
 				path: '/user/reset',
@@ -139,7 +139,7 @@ function change_password(){
 		});
 
 		with_token(function(token){
-			var req = post_request({
+			var req = request({
 				host: log_server,
 				port: log_server_port,
 				path: '/user/password',
@@ -170,7 +170,7 @@ function auth(){
 			password: p.password
 		});
 
-		var req = post_request({
+		var req = request({
 			host: log_server,
 			port: log_server_port,
 			path: '/auth',
@@ -194,33 +194,25 @@ function auth(){
 function logout(args){
 
 	with_token(function(token){
-		var req = post_request({
+		var req = request({
 			host: log_server,
 			port: log_server_port,
 			path: '/logout',
-			method: 'POST',
 			headers: {
 					'Content-Type': 'application/json',
 					'Cookie': 'auth=' + token
 				}
 		});
-
-		// write data to request body
-		req.write('data\n');
-		req.write('data\n');
 		req.end();
 	});
 }
 
-//TODO:Stan Flip to GET
 function search(args){
-
 	with_token(function(token){
-		var req = post_request({
+		var req = request({
 			host: log_server,
 			port: 8000,
-			path: '/search?' + args.join('&'),
-			method: 'POST',
+			path: '/search?q=' + encodeURIComponent(args.join(' ')),
 			headers: {
 					'Content-Type': 'application/json',
 					'Cookie': 'auth=' + token
@@ -228,13 +220,13 @@ function search(args){
 		}, function(result){
 			for (var index in result){
 				var r = result[index];
-				console.log('[' + moment(r['time']).format('MMM D YYYY, HH:mm:ss') + ' ' + r['facility'] + ' ' + r['severity'] + ']\t' + r['host'] + '   ' + r['message']);
+        if(r['message']){
+          console.log('[' + moment(r['time']).format('MMM D YYYY, HH:mm:ss') + ' ' + r['facility'] + ' ' + r['severity'] + ']\t' + r['host'] + '   ' + r['message']);
+        } else {
+          console.log(r);
+        }
 			}
 		});
-
-		// write data to request body
-		req.write('data\n');
-		req.write('data\n');
 		req.end();
 	});
 }
@@ -252,7 +244,7 @@ function with_token(callback){
 	});
 }
 
-function post_request(options, callback){
+function request(options, callback){
 	var response = '';
 	var req = http.request(options, function(res) {
 		if(res.headers['set-cookie']) save_token(res.headers['set-cookie'].toString().split(/auth=(.*?);.*/)[1]);
@@ -274,7 +266,7 @@ function post_request(options, callback){
 		});
 	});
 	req.on('error', function(e) {
-		console.log('Err ' + e);
+		console.log('Err ', e);
 	});
 
 	return req;

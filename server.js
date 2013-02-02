@@ -143,35 +143,41 @@ function change_password(req, res, url_parts){
 	});
 }
 
-function search(req, res, url_parts){
-	is_auth(req, res, function(user){
-		db.collection('users', function(err, collection) {
-      syslog.send_message(user.email + ' viewed the logs with: ' + req.url.toString());
-			db.collection('messages', function(err, collection) {
-				var query = collection.find(url_parts.query).sort({time:-1, timestamp:-1});
-				var skip = pop(url_parts.query, 'skip');
-				var limit = pop(url_parts.query, 'limit');
+function search(req, res, url_parts) {
+  is_auth(req, res, function (user) {
+    db.collection('users', function (err, collection) {
+      syslog.send_message(user.email + ' viewed the logs with: ' + url_parts.query['q'].toString());
+      db.collection('messages', function (err, collection) {
+        try {
+          var args = JSON.parse(url_parts.query['q'] || '{}');
+          var query = collection.find(args).sort({time: -1, timestamp: -1});
+          var skip = pop(url_parts.query, 'skip');
+          var limit = pop(url_parts.query, 'limit');
 
-				if(skip) query = query.skip(parseInt(skip));
-				if(limit) {
-					query = query.limit(parseInt(limit));
-				} else {
-					query = query.limit(100);
-				}
+          if (skip) query = query.skip(parseInt(skip));
+          if (limit) {
+            query = query.limit(parseInt(limit));
+          } else {
+            query = query.limit(100);
+          }
 
-				var m = [];
-				res.writeHead(200, {"Content-Type": "application/json"});
-				query.each(function(err, message){
-					if(!err && message){
-						m.push(message); // This kind of sucks. In order to reverse the Cursor we have to load it all in memory.
-					} else {
-						res.write(JSON.stringify(m.reverse()));
-						res.end();
-					}
-				});
-			});
-		});
-	});
+          var m = [];
+          res.writeHead(200, {"Content-Type": "application/json"});
+          query.each(function (err, message) {
+            if (!err && message) {
+              m.push(message); // This kind of sucks. In order to reverse the Cursor we have to load it all in memory.
+            } else {
+              res.write(JSON.stringify(m.reverse()));
+              res.end();
+            }
+          });
+        } catch (e) {
+          console.log(e);
+          write_response_message(res, 400, "bad_request");
+        }
+      });
+    });
+  });
 }
 
 function set_auth_token(req, res, user){
