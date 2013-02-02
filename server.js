@@ -148,8 +148,15 @@ function search(req, res, url_parts) {
     db.collection('users', function (err, collection) {
       syslog.send_message(user.email + ' viewed the logs with: ' + url_parts.query['q'].toString());
       db.collection('messages', function (err, collection) {
+
+        var args = null;
+        try{
+          args = JSON.parse(url_parts.query['q']);
+        }catch(e){
+          args = {};
+        }
+
         try {
-          var args = JSON.parse(url_parts.query['q'] || '{}');
           var query = collection.find(args).sort({time: -1, timestamp: -1});
           var skip = pop(url_parts.query, 'skip');
           var limit = pop(url_parts.query, 'limit');
