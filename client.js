@@ -18,6 +18,29 @@ var password_schema = {
 	required: true
 };
 
+var alert_name_schema = {
+  pattern: /^[\w\d \-_]+$/,
+  type: 'string',
+  message: 'Name must be only letters, spaces, dashes or underscores.',
+  required: true
+};
+
+var regex_schema = {
+  required: true,
+  before: function(value) { return value.test(' '); }
+};
+
+var regex_modifiers_schema = {
+  pattern: /^g?i?m?$/,
+  required: false,
+  before: function(value) { return value.split('').sort().join(''); }
+};
+
+var regex_enable_schema = {
+  pattern: /^true$|false$/,
+  required: false
+};
+
 switch(process.argv[2]) {
 	case 'auth':
     auth();
@@ -34,6 +57,9 @@ switch(process.argv[2]) {
 	case 'passwd':
     change_password();
   break;
+  case 'alertadd':
+      alert_add();
+    break;
 	case 'logout':
     logout();
   break;
@@ -143,6 +169,42 @@ function change_password(){
 				host: log_server,
 				port: log_server_port,
 				path: '/user/password',
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Content-Length': post_data.length,
+					'Cookie': 'auth=' + token
+				}
+			});
+
+			req.write(post_data);
+			req.end();
+		});
+	});
+}
+
+function alert_add(){
+  prompt.start();
+  	prompt.get({
+  		properties: {
+  			name: alert_name_schema,
+  			regex: regex_schema,
+        modifiers: regex_modifiers_schema,
+        enable: regex_enable_schema
+  		}
+  	}, function (err, p) {
+  		var post_data = JSON.stringify({
+  			name: p.name,
+        regex: p.regex,
+        modifiers: p._modifiers,
+        enable: p.enable
+  		});
+
+		with_token(function(token){
+			var req = request({
+				host: log_server,
+				port: log_server_port,
+				path: '/alert/add',
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',

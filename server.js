@@ -9,7 +9,8 @@ var db = require('./db.js')
 		, Cookies = require('cookies')
 		, querystring = require('querystring')
 		, password = require('password')
-		, email = require('./email.js');
+		, email = require('./email.js')
+    , alert = require('./alert.js');
 
 //skip=20
 //limit=100
@@ -34,6 +35,9 @@ http.createServer(function (req, res) {
 		case '/user/password':
 			change_password(req, res, url_parts);
 			break;
+    case '/alert/add':
+      alert_add(req, res, url_parts);
+      break;
 		case '/logout':
 			logout(req, res, url_parts);
 			break;
@@ -141,6 +145,22 @@ function change_password(req, res, url_parts){
 			});
 		});
 	});
+}
+
+function alert_add(req, res, url_parts) {
+  parse_post(req, res, function () {
+    is_auth(req, res, function (user) {
+
+      //TODO: check perms
+      try {
+        alert.add(res.post['name'], res.post['regex'], res.post['modifiers'], res.post['enable']);
+        write_response_message(res, 200, "success");
+      } catch (e) {
+        console.log(e);
+        write_response_message(res, 409, "address_exists");
+      }
+    });
+  });
 }
 
 function search(req, res, url_parts) {
