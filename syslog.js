@@ -1,6 +1,5 @@
-var config = require('./config.js');
-
-var db = require('./db.js')
+var config = require('./config.js')
+    , db = require('./db.js')
     , syslogParser = require('glossy').Parse
     , syslogProducer = require('glossy').Produce
     , glossy = new syslogProducer()

@@ -150,15 +150,10 @@ function change_password(req, res, url_parts){
 function alert_add(req, res, url_parts) {
   parse_post(req, res, function () {
     is_auth(req, res, function (user) {
-
       //TODO: check perms
-      try {
-        alert.add(res.post['name'], res.post['regex'], res.post['modifiers'], res.post['enable']);
+      alert.add(res.post['name'], res.post['regex'], res.post['modifiers'], res.post['recipients'], res.post['enable'], function (alert) {
         write_response_message(res, 200, "success");
-      } catch (e) {
-        console.log(e);
-        write_response_message(res, 409, "address_exists");
-      }
+      });
     });
   });
 }

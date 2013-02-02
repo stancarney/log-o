@@ -41,6 +41,11 @@ var regex_enable_schema = {
   required: false
 };
 
+var email_list_schema = {
+  pattern: /^([a-z0-9]+@[a-z0-9]+\.[a-z]+,? ?)+$/i, //simple email matching
+  required: true
+};
+
 switch(process.argv[2]) {
 	case 'auth':
     auth();
@@ -190,13 +195,15 @@ function alert_add(){
   			name: alert_name_schema,
   			regex: regex_schema,
         modifiers: regex_modifiers_schema,
+        recipients: email_list_schema,
         enable: regex_enable_schema
   		}
   	}, function (err, p) {
   		var post_data = JSON.stringify({
   			name: p.name,
         regex: p.regex,
-        modifiers: p._modifiers,
+        modifiers: p.modifiers,
+        recipients: p.recipients,
         enable: p.enable
   		});
 
