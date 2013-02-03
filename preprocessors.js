@@ -1,8 +1,7 @@
-var config = require('./config.js');
-
-var fs = require('fs');
-var path = require('path');
-var module_holder = {};
+var config = require('./config.js')
+    , fs = require('fs')
+    , path = require('path')
+    , module_holder = {};
 
 function load_modules(module_path) {
   fs.lstat(module_path, function (err, stat) {

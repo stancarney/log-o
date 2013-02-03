@@ -1,6 +1,6 @@
-var config = require('./config.js');
-
-var server = require("emailjs").server.connect({
+var config = require('./config.js')
+    , moment = require('moment')
+    , server = require("emailjs").server.connect({
 			user: config.get('smtp_username'),
 			password: config.get('smtp_password'),
 			host: config.get('smtp_host'),
@@ -11,6 +11,22 @@ var server = require("emailjs").server.connect({
 
 exports.send_welcome = function(email, password) {
 	sendEmail(email, "Welcome to Log-o", "Here is your password: " + password);
+};
+
+exports.send_alert = function(email, alert, parsed_message) {
+	sendEmail(email, "ALERT: " + alert.name,
+      "ALERT hit for rule named: " +
+          alert.name + "\n\n" +
+          '[' +
+          moment(parsed_message['time']).format('MMM D YYYY, HH:mm:ss') +
+          ' ' +
+          parsed_message['facility'] +
+          ' ' +
+          parsed_message['severity'] +
+          ']\t' +
+          parsed_message['host'] +
+          '   ' +
+          parsed_message['message']);
 };
 
 function sendEmail(to, subject, body) {

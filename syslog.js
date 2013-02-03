@@ -1,5 +1,6 @@
 var config = require('./config.js')
     , db = require('./db.js')
+    , alert = require('./alert.js')
     , syslogParser = require('glossy').Parse
     , syslogProducer = require('glossy').Produce
     , glossy = new syslogProducer()
@@ -45,6 +46,7 @@ exports.save = function(rawMessage) {
               parsed_message['hash'] = crypto.createHash('sha1').update(JSON.stringify(parsed_message)).digest("hex");
 
               collection.save(parsed_message);
+              alert.check(parsed_message);
             } else {
               console.log('Err', err);
             }

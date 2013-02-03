@@ -42,7 +42,7 @@ var regex_enable_schema = {
 };
 
 var email_list_schema = {
-  pattern: /^([a-z0-9]+@[a-z0-9]+\.[a-z]+,? ?)+$/i, //simple email matching
+  pattern: /^([a-z0-9._+]+@[a-z0-9]+\.[a-z]+,? ?)+$/i, //simple email matching
   required: true
 };
 
