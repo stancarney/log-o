@@ -1,18 +1,18 @@
 var config = require('./config.js')
     , db = require('./db.js')
-    , email = require('./email.js');
+    , email = require('./email.js')
+    , password = require('password');
 
-exports.add = function (name, regex, modifiers, recipients, enable, callback) {
-  db.collection('alerts', function (err, collection) {
-    console.log("name: " + name + " regex: " + regex + " enable: " + enable);
-    //TODO: Validate regex
-    if (modifiers) {
-      modifiers = modifiers.split('').sort().join('');
-    }
-    var alert = {name: name, regex: regex, modifiers: modifiers, recipients: recipients.replace(/\s/g, '').split(','), enable: enable || true};
-    collection.save(alert);
-    callback(alert);
-  });
+exports.add = function (email_address, callback) {
+  if (email.is_valid_email(email_address)) {
+    db.collection('users', function (err, collection) {
+      collection.save({email: email_address, password: password(3), force_password_change: true}, {safe: true}, function (err, new_user) {
+        callback(err, new_user);
+      });
+    });
+  } else {
+    callback('invalid_email');
+  }
 };
 
 exports.edit = function (name, regex, enable) {

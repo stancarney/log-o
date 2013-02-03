@@ -8,9 +8,9 @@ var db = require('./db.js')
 		, os = require('os')
 		, Cookies = require('cookies')
 		, querystring = require('querystring')
-		, password = require('password')
 		, email = require('./email.js')
-    , alert = require('./alert.js');
+    , alert = require('./alert.js')
+    , user = require('./user.js');
 
 //skip=20
 //limit=100
@@ -75,22 +75,17 @@ function auth(req, res, url_parts){
 
 function user_add(req, res, url_parts){
 	parse_post(req, res, function(){
-		is_auth(req, res, function(user){
-			if(is_valid_email(res.post['email'])){
-				db.collection('users', function(err, collection) {
-					collection.save({email: res.post['email'], password: password(3), force_password_change: true}, {safe: true}, function(err, new_user){
-						if(err) {
-							write_response_message(res, 409, "address_exists");
-						} else {
-              syslog.send_message("User added: " + res.post['email'] + " by: " + user.email + " IP: " + req.connection.remoteAddress);
-							email.send_welcome(new_user.email, new_user.password);
-							write_response_message(res, 200, "success");
-						}
-					});
-				});
-			} else {
-				write_response_message(res, 400, "invalid_email");
-			}
+		is_auth(req, res, function(auth_user){
+      //TODO: check perms
+      user.add(res.post['email'], function (err, new_user) {
+        if (err) {
+          write_response_message(res, 409, err);
+        } else {
+          syslog.send_message("User added: " + new_user.email + " by: " + auth_user.email + " IP: " + req.connection.remoteAddress);
+          email.send_welcome(new_user.email, new_user.password);
+          write_response_message(res, 200, "success");
+        }
+      });
 		});
 	});
 }
@@ -275,10 +270,6 @@ function parse_post(req, res, callback) {
 	} else {
 		write_response_message(res, 405, "method_not_allowed");
 	}
-}
-
-function is_valid_email(email) {
-	return /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+(?:[A-Z]{2}|com|org|net|gov|mil|biz|info|mobi|name|aero|jobs|museum)\b/i.test(email);
 }
 
 function pop(dictionary, key){

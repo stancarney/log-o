@@ -29,6 +29,10 @@ exports.send_alert = function(email, alert, parsed_message) {
           parsed_message['message']);
 };
 
+exports.is_valid_email = function(email) {
+	return /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+(?:[A-Z]{2}|com|org|net|gov|mil|biz|info|mobi|name|aero|jobs|museum)\b/i.test(email);
+};
+
 function sendEmail(to, subject, body) {
 	server.send({
 		 text:    body,
