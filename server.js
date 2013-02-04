@@ -155,8 +155,9 @@ function alertAdd(req, res, urlParts) {
 
 function search(req, res, urlParts) {
   isAuth(req, res, function (user) {
-    syslog.sendMessage(user.email + ' viewed the logs with: ' + urlParts.query['q'].toString());
-    db.getMessages(urlParts.query['q'], function (messages) {
+    var qs = urlParts.query['q'] || '';
+    syslog.sendMessage(user.email + ' viewed the logs with: ' + qs.toString());
+    db.getMessages(qs, function (messages) {
       res.writeHead(200, {'Content-Type': 'application/json'});
       if (messages) {
         res.write(JSON.stringify(messages.reverse())); // This kind of sucks. In order to reverse the Cursor we have to load it all in memory.
