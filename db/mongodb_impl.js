@@ -62,7 +62,7 @@ module.exports.getMessages = function (queryString, callback) {
   db.collection('messages', function (err, collection) {
     var args = null;
     try {
-      args = JSON.parse(queryString['q']);
+      args = JSON.parse(queryString);
     } catch (e) {
       args = {};
     }
