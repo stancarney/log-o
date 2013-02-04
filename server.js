@@ -98,21 +98,28 @@ function userReset(req, res, urlParts) {
   parsePost(req, res, function () {
     isAuth(req, res, function (user) {
       db.getUserByEmail(res.post['email'], function (resetUser) {
-        if (!err && resetUser) {
-          resetUser.forcePasswordChange = true;
-          resetUser.password = password(3);
-          syslog.sendMessage('User reset: ' + resetUser.email + ' by: ' + user.email + ' IP: ' + req.connection.remoteAddress);
-          email.sendWelcome(resetUser.email, resetUser.password);
-          db.saveUser(resetUser, function (user) {
-            if (user) {
-              writeResponseMessage(res, 200, 'success');
-            } else {
-              writeResponseMessage(res, 500, 'could_not_save_user');
-            }
-          });
-        } else {
-          writeResponseMessage(res, 404, 'user_not_found');
+
+        if (err) {
+          writeResponseMessage(res, 500, 'could_not_reset_user');
+          return;
         }
+
+        if (!resetUser) {
+          writeResponseMessage(res, 404, 'user_not_found');
+          return;
+        }
+
+        resetUser.forcePasswordChange = true;
+        resetUser.password = password(3);
+        syslog.sendMessage('User reset: ' + resetUser.email + ' by: ' + user.email + ' IP: ' + req.connection.remoteAddress);
+        email.sendWelcome(resetUser.email, resetUser.password);
+        db.saveUser(resetUser, function (user) {
+          if (user) {
+            writeResponseMessage(res, 200, 'success');
+          } else {
+            writeResponseMessage(res, 500, 'could_not_save_user');
+          }
+        });
       });
     });
   });
