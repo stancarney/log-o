@@ -35,8 +35,7 @@ if(config.get('tcp')) {
 
   server.on('listening', function() {
     var address = server.address();
-    var msg = "TCP Server started on " + os.hostname() + " (" + address.address + ":" + address.port + ")"
-    console.log(msg);
+    var msg = "TCP Server started on " + os.hostname() + " (" + address.address + ":" + address.port + ")";
     syslog.send_message(msg);
   });
 

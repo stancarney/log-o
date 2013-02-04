@@ -12,8 +12,7 @@ if(config.get('udp')) {
   
   server.on('listening', function() {
     var address = server.address();
-    var msg = "UDP Server started on " + os.hostname() + " (" + address.address + ":" + address.port + ")"
-    console.log(msg);
+    var msg = "UDP Server started on " + os.hostname() + " (" + address.address + ":" + address.port + ")";
     syslog.send_message(msg);
   });
   

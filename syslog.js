@@ -11,51 +11,53 @@ var config = require('./config.js')
     , microtime = require('microtime')
     , preprocessors = require('./preprocessors.js');
 
-exports.save = function(rawMessage) {
+exports.save = function (rawMessage) {
   var now = microtime.now();
   try {
     //remove bash color chars and BEL characters. The #033 is there because sometimes the characters have already been escaped.
-    rawMessage = rawMessage.replace(/(\x1B|#033)\[([0-9]{1,3}((;[0-9]{1,3})*)?)?[m|K]/g, '').replace(/(\x07|#007)/g, '');
+    rawMessage = rawMessage.replace(/(\x1B|#033)\[([0-9]{1,3}((;[0-9]{1,3})*)?)?[m|K]/g, '').replace(/(\x07|#007)/g, ''); //TODO: move into pre-processor?
 
-    syslogParser.parse(rawMessage, function(parsed_message){
-        db.collection('messages', function(err, collection) {
-  
-          collection.find({}, {'hash':1}).sort({_id:-1}).limit(1).toArray(function(err, last_message){
-            if(!err && last_message){
+    syslogParser.parse(rawMessage, function (parsed_message) {
+      db.getLastMessage(function (last_message) {
+        if (last_message) {
+          //This happens when the message could not be parsed. In that case we swap in the originalMessage
+          if (parsed_message['message'] == undefined) {
+            parsed_message['message'] = parsed_message['originalMessage'];
+            console.log('Message could not be parsed: ' + parsed_message['originalMessage']);
+          }
 
-              //This happens when the message could not be parsed. In that case we swap in the originalMessage
-              if (parsed_message['message'] == undefined) {
-                parsed_message['message'] = parsed_message['originalMessage'];
-                console.log('Message could not be parsed: ' + parsed_message['originalMessage']);
-              }
+          for (var i in preprocessors.module_holder) {
+            try {
+              parsed_message = preprocessors.module_holder[i](parsed_message);
+            } catch (e) {
+              console.log('Preprocessor threw an exception. [' + preprocessors.module_holder[i] + '] ', e);
+            }
+          }
 
-              for (var i in preprocessors.module_holder) {
-                try {
-                  parsed_message = preprocessors.module_holder[i](parsed_message);
-                } catch (e) {
-                  console.log('Preprocessor threw an exception. [' + preprocessors.module_holder[i] + '] ', e);
-                }
-              }
+          //add additional parts first.
+          parsed_message['timestamp'] = now;
+          parsed_message['hostname'] = os.hostname();
+          parsed_message['keywords'] = clean_keywords(parsed_message['message'].toLowerCase().split(' '));
+          parsed_message['message_hash'] = crypto.createHash('sha1').update(parsed_message['message']).digest("hex");
+          parsed_message['previous_hash'] = last_message[0] ? last_message[0].hash : '';
+          parsed_message['hash'] = crypto.createHash('sha1').update(JSON.stringify(parsed_message)).digest("hex");
 
-              //add additional parts first.
-              parsed_message['timestamp'] = now;
-              parsed_message['hostname'] = os.hostname();
-              parsed_message['keywords'] = clean_keywords(parsed_message['message'].toLowerCase().split(' '));
-              parsed_message['message_hash'] = crypto.createHash('sha1').update(parsed_message['message']).digest("hex");
-              parsed_message['previous_hash'] = last_message[0] ? last_message[0].hash : '';
-              parsed_message['hash'] = crypto.createHash('sha1').update(JSON.stringify(parsed_message)).digest("hex");
-
-              collection.save(parsed_message);
+          db.saveMessage(parsed_message, function (message) {
+            if (message) {
+              console.log('save', parsed_message);
               alert.check(parsed_message);
             } else {
-              console.log('Err', err);
+              console.log('Message was not saved.');
             }
           });
-        });
+        } else {
+          console.log('No last message found.');
+        }
       });
-    } catch(e) {
-        console.log('Could not save message. [' + rawMessage + '] ', e);
-    }
+    });
+  } catch (e) {
+    console.log('Could not save message. [' + rawMessage + '] ', e);
+  }
 };
 
 exports.send_message = function (message) {
