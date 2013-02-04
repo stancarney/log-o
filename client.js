@@ -1,342 +1,346 @@
 var http = require('http')
-	, prompt = require('prompt')
-	, moment = require('moment')
-	, fs = require('fs')
-	, querystring = require('querystring');
+    , prompt = require('prompt')
+    , moment = require('moment')
+    , fs = require('fs')
+    , querystring = require('querystring');
 
-var log_server = 'localhost';
-var log_server_port = 8000;
+var LOG_SERVER = 'localhost';
+var LOG_SERVER_PORT = 8000;
 
-var token_file = process.env['HOME'] + '/.log-o.token';
+var TOKEN_FILE = process.env['HOME'] + '/.log-o.token';
 
-var email_schema = {
-	required: true
+var EMAIL_SCHEMA = {
+  required: true
 };
 
-var password_schema = {
-	hidden: true,
-	required: true
+var PASSWORD_SCHEMA = {
+  hidden: true,
+  required: true
 };
 
-var alert_name_schema = {
+var ALERT_NAME_SCHEMA = {
   pattern: /^[\w\d \-_]+$/,
   type: 'string',
   message: 'Name must be only letters, spaces, dashes or underscores.',
   required: true
 };
 
-var regex_schema = {
+var REGEX_SCHEMA = {
   required: true,
-  before: function(value) { return value.test(' '); }
+  before: function (value) {
+    return value.test(' ');
+  }
 };
 
-var regex_modifiers_schema = {
+var REGEX_MODIFIERS_SCHEMA = {
   pattern: /^g?i?m?$/,
   required: false,
-  before: function(value) { return value.split('').sort().join(''); }
+  before: function (value) {
+    return value.split('').sort().join('');
+  }
 };
 
-var regex_enable_schema = {
+var REGEX_ENABLE_SCHEMA = {
   pattern: /^true$|false$/,
   required: false
 };
 
-var email_list_schema = {
+var EMAIL_LIST_SCHEMA = {
   pattern: /^([a-z0-9._+]+@[a-z0-9]+\.[a-z]+,? ?)+$/i, //simple email matching
   required: true
 };
 
-switch(process.argv[2]) {
-	case 'auth':
+switch (process.argv[2]) {
+  case 'auth':
     auth();
-  break;
-	case 'useradd':
-    user_add();
-  break;
-	case 'userlist':
-    user_list();
-  break;
-	case 'reset':
-    user_reset();
-  break;
-	case 'passwd':
-    change_password();
-  break;
-  case 'alertadd':
-      alert_add();
     break;
-	case 'logout':
+  case 'useradd':
+    userAdd();
+    break;
+  case 'userlist':
+    userList();
+    break;
+  case 'reset':
+    userReset();
+    break;
+  case 'passwd':
+    changePassword();
+    break;
+  case 'logout':
     logout();
-  break;
-	default:
+    break;
+  case 'alertadd':
+    alertAdd();
+    break;
+  default:
     search(process.argv.slice(2));
 }
 
-function user_add(){
-	prompt.start();
-	prompt.get(['email'], function (err, p) {
-		var post_data = JSON.stringify({
-			email: p.email
-		});
-
-		with_token(function(token){
-			var req = request({
-				host: log_server,
-				port: log_server_port,
-				path: '/user/add',
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'Content-Length': post_data.length,
-					'Cookie': 'auth=' + token
-				}
-			});
-
-			req.write(post_data);
-			req.end();
-		});
-	});
-}
-
-function user_list(){
-	var post_data = JSON.stringify({ });
-
-	with_token(function(token){
-		var req = request({
-			host: log_server,
-			port: log_server_port,
-			path: '/user/list',
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'Content-Length': post_data.length,
-				'Cookie': 'auth=' + token
-			}
-		}, function(result){
-			for (var index in result){
-				var r = result[index];
-				console.log(moment(r['last_access']).format('MMM D YYYY, HH:mm:ss') + '\t' + r['email']);
-			}
-		});
-
-		req.write(post_data);
-		req.end();
-	});
-}
-
-function user_reset(){
-	prompt.start();
-	prompt.get(['email'], function (err, p) {
-		var post_data = JSON.stringify({
-			email: p.email
-		});
-
-		with_token(function(token){
-			var req = request({
-				host: log_server,
-				port: log_server_port,
-				path: '/user/reset',
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'Content-Length': post_data.length,
-					'Cookie': 'auth=' + token
-				}
-			});
-
-			req.write(post_data);
-			req.end();
-		});
-	});
-}
-
-function change_password(){
-	prompt.start();
-	prompt.get({
-		properties: {
-			new_password: {
-				hidden: true,
-				required: true,
-				description: 'new'
-			},
-			confirm: password_schema
-		}
-	}, function (err, p) {
-
-		//TODO:Stan validate new and old match
-
-		var post_data = JSON.stringify({
-			new_password: p.new_password
-		});
-
-		with_token(function(token){
-			var req = request({
-				host: log_server,
-				port: log_server_port,
-				path: '/user/password',
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'Content-Length': post_data.length,
-					'Cookie': 'auth=' + token
-				}
-			});
-
-			req.write(post_data);
-			req.end();
-		});
-	});
-}
-
-function alert_add(){
+function userAdd() {
   prompt.start();
-  	prompt.get({
-  		properties: {
-  			name: alert_name_schema,
-  			regex: regex_schema,
-        modifiers: regex_modifiers_schema,
-        recipients: email_list_schema,
-        enable: regex_enable_schema
-  		}
-  	}, function (err, p) {
-  		var post_data = JSON.stringify({
-  			name: p.name,
-        regex: p.regex,
-        modifiers: p.modifiers,
-        recipients: p.recipients,
-        enable: p.enable
-  		});
+  prompt.get(['email'], function (err, p) {
+    var postData = JSON.stringify({
+      email: p.email
+    });
 
-		with_token(function(token){
-			var req = request({
-				host: log_server,
-				port: log_server_port,
-				path: '/alert/add',
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'Content-Length': post_data.length,
-					'Cookie': 'auth=' + token
-				}
-			});
+    withToken(function (token) {
+      var req = request({
+        host: LOG_SERVER,
+        port: LOG_SERVER_PORT,
+        path: '/user/add',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': postData.length,
+          'Cookie': 'auth=' + token
+        }
+      });
 
-			req.write(post_data);
-			req.end();
-		});
-	});
+      req.write(postData);
+      req.end();
+    });
+  });
 }
 
-function auth(){
-	prompt.start();
-	prompt.get({
-		properties: {
-			email: email_schema,
-			password: password_schema
-		}
-	}, function (err, p) {
-		var post_data = JSON.stringify({
-			email: p.email,
-			password: p.password
-		});
+function userList() {
+  var postData = JSON.stringify({ });
 
-		var req = request({
-			host: log_server,
-			port: log_server_port,
-			path: '/auth',
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'Content-Length': post_data.length
-			}
-		}, function(result){
-			if(result['result'] == 'force_password_change'){
-				console.log("Password change required.");
-				change_password();
-			}
-		});
+  withToken(function (token) {
+    var req = request({
+      host: LOG_SERVER,
+      port: LOG_SERVER_PORT,
+      path: '/user/list',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': postData.length,
+        'Cookie': 'auth=' + token
+      }
+    }, function (result) {
+      for (var index in result) {
+        var r = result[index];
+        console.log(moment(r['lastAccess']).format('MMM D YYYY, HH:mm:ss') + '\t' + r['email']);
+      }
+    });
 
-		req.write(post_data);
-		req.end();
-	});
+    req.write(postData);
+    req.end();
+  });
 }
 
-function logout(args){
+function userReset() {
+  prompt.start();
+  prompt.get(['email'], function (err, p) {
+    var postData = JSON.stringify({
+      email: p.email
+    });
 
-	with_token(function(token){
-		var req = request({
-			host: log_server,
-			port: log_server_port,
-			path: '/logout',
-			headers: {
-					'Content-Type': 'application/json',
-					'Cookie': 'auth=' + token
-				}
-		});
-		req.end();
-	});
+    withToken(function (token) {
+      var req = request({
+        host: LOG_SERVER,
+        port: LOG_SERVER_PORT,
+        path: '/user/reset',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': postData.length,
+          'Cookie': 'auth=' + token
+        }
+      });
+
+      req.write(postData);
+      req.end();
+    });
+  });
 }
 
-function search(args){
-	with_token(function(token){
-		var req = request({
-			host: log_server,
-			port: 8000,
-			path: '/search?q=' + encodeURIComponent(args.join(' ')),
-			headers: {
-					'Content-Type': 'application/json',
-					'Cookie': 'auth=' + token
-				}
-		}, function(result){
-			for (var index in result){
-				var r = result[index];
-        if(r['message']){
+function changePassword() {
+  prompt.start();
+  prompt.get({
+    properties: {
+      newPassword: {
+        hidden: true,
+        required: true,
+        description: 'new'
+      },
+      confirm: PASSWORD_SCHEMA
+    }
+  }, function (err, p) {
+
+    //TODO:Stan validate new and old match
+
+    var postData = JSON.stringify({
+      newPassword: p.newPassword
+    });
+
+    withToken(function (token) {
+      var req = request({
+        host: LOG_SERVER,
+        port: LOG_SERVER_PORT,
+        path: '/user/password',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': postData.length,
+          'Cookie': 'auth=' + token
+        }
+      });
+
+      req.write(postData);
+      req.end();
+    });
+  });
+}
+
+function alertAdd() {
+  prompt.start();
+  prompt.get({
+    properties: {
+      name: ALERT_NAME_SCHEMA,
+      regex: REGEX_SCHEMA,
+      modifiers: REGEX_MODIFIERS_SCHEMA,
+      recipients: EMAIL_LIST_SCHEMA,
+      enable: REGEX_ENABLE_SCHEMA
+    }
+  }, function (err, p) {
+    var postData = JSON.stringify({
+      name: p.name,
+      regex: p.regex,
+      modifiers: p.modifiers,
+      recipients: p.recipients,
+      enable: p.enable
+    });
+
+    withToken(function (token) {
+      var req = request({
+        host: LOG_SERVER,
+        port: LOG_SERVER_PORT,
+        path: '/alert/add',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': postData.length,
+          'Cookie': 'auth=' + token
+        }
+      });
+
+      req.write(postData);
+      req.end();
+    });
+  });
+}
+
+function auth() {
+  prompt.start();
+  prompt.get({
+    properties: {
+      email: EMAIL_SCHEMA,
+      password: PASSWORD_SCHEMA
+    }
+  }, function (err, p) {
+    var postData = JSON.stringify({
+      email: p.email,
+      password: p.password
+    });
+
+    var req = request({
+      host: LOG_SERVER,
+      port: LOG_SERVER_PORT,
+      path: '/auth',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': postData.length
+      }
+    }, function (result) {
+      if (result['result'] === 'force_password_change') {
+        console.log('Password change required.');
+        changePassword();
+      }
+    });
+
+    req.write(postData);
+    req.end();
+  });
+}
+
+function logout(args) {
+
+  withToken(function (token) {
+    var req = request({
+      host: LOG_SERVER,
+      port: LOG_SERVER_PORT,
+      path: '/logout',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': 'auth=' + token
+      }
+    });
+    req.end();
+  });
+}
+
+function search(args) {
+  withToken(function (token) {
+    var req = request({
+      host: LOG_SERVER,
+      port: 8000,
+      path: '/search?q=' + encodeURIComponent(args.join(' ')),
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': 'auth=' + token
+      }
+    }, function (result) {
+      for (var index in result) {
+        var r = result[index];
+        if (r['message']) {
           console.log('[' + moment(r['time']).format('MMM D YYYY, HH:mm:ss') + ' ' + r['facility'] + ' ' + r['severity'] + ']\t' + r['host'] + '   ' + r['message']);
         } else {
           console.log(r);
         }
-			}
-		});
-		req.end();
-	});
+      }
+    });
+    req.end();
+  });
 }
 
-function save_token(token) {
-	fs.writeFile(token_file, token, function(err) {
-		if (err) throw err;
-	});
+function saveToken(token) {
+  fs.writeFile(TOKEN_FILE, token, function (err) {
+    if (err) throw err;
+  });
 }
 
-function with_token(callback){
-	fs.readFile(token_file, function (err, token) {
+function withToken(callback) {
+  fs.readFile(TOKEN_FILE, function (err, token) {
     if (err) throw err;
     callback(token);
-	});
+  });
 }
 
-function request(options, callback){
-	var response = '';
-	var req = http.request(options, function(res) {
-		if(res.headers['set-cookie']) save_token(res.headers['set-cookie'].toString().split(/auth=(.*?);.*/)[1]);
-		res.setEncoding('utf8');
-		res.on('data', function (chunk) {
-			response += chunk;
-		});
-		res.on('end', function(){
-			var result = JSON.parse(response);
-			if(!callback) {
-				console.log(result['result']);
-			} else {
-				callback(result);
-			}
-			if(res.statusCode != 200) {
-				console.log(res.statusCode);
-				process.exit(1);
-			}
-		});
-	});
-	req.on('error', function(e) {
-		console.log('Err ', e);
-	});
+function request(options, callback) {
+  var response = '';
+  var req = http.request(options, function (res) {
+    if (res.headers['set-cookie']) saveToken(res.headers['set-cookie'].toString().split(/auth=(.*?);.*/)[1]);
+    res.setEncoding('utf8');
+    res.on('data', function (chunk) {
+      response += chunk;
+    });
+    res.on('end', function () {
+      var result = JSON.parse(response);
+      if (!callback) {
+        console.log(result['result']);
+      } else {
+        callback(result);
+      }
+      if (res.statusCode != 200) {
+        console.log(res.statusCode);
+        process.exit(1);
+      }
+    });
+  });
+  req.on('error', function (e) {
+    console.log('Err ', e);
+  });
 
-	return req;
+  return req;
 }

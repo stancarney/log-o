@@ -3,9 +3,9 @@ var config = require('./config.js')
     , email = require('./email.js')
     , password = require('password');
 
-exports.add = function (email_address, callback) {
-  if (email.is_valid_email(email_address)) {
-    db.saveUser({email: email_address, password: password(3), force_password_change: true}, callback);
+exports.add = function (emailAddress, callback) {
+  if (email.isValidEmail(emailAddress)) {
+    db.saveUser({email: emailAddress, password: password(3), forcePasswordChange: true}, callback);
   } else {
     callback('invalid_email');
   }

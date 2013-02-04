@@ -18,11 +18,11 @@
  previous_hash
  hash
  */
-function preprocessor(parsed_message) {
-  console.log(parsed_message['message']);
-  return parsed_message;
+function preprocessor(parsedMessage) {
+  console.log(parsedMessage['message']);
+  return parsedMessage;
 }
 
-module.exports = function (module_holder) {
-  module_holder['console_echo'] = preprocessor;
+module.exports = function (moduleHolder) {
+  moduleHolder['console_echo'] = preprocessor;
 };

@@ -27,14 +27,14 @@ exports.list = function () {
 
 };
 
-exports.check = function (parsed_message) {
+exports.check = function (parsedMessage) {
   db.getActiveAlerts(function (alerts) {
     for (var alert in alerts) {
       var regex = new RegExp(alert.regex, alert.modifiers || '');
-      if (regex.test(parsed_message['originalMessage'])) {
+      if (regex.test(parsedMessage['originalMessage'])) {
         var emails = alert.recipients;
         for (var e in emails) {
-          email.send_alert(emails[e], alert, parsed_message);
+          email.sendAlert(emails[e], alert, parsedMessage);
         }
       }
     }

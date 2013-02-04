@@ -6,7 +6,7 @@ var config = require('./config.js')
     , glossy = new syslogProducer()
     , os = require('os')
     , crypto = require('crypto')
-    , dgram  = require('dgram')
+    , dgram = require('dgram')
     , net = require('net')
     , microtime = require('microtime')
     , preprocessors = require('./preprocessors.js');
@@ -17,35 +17,34 @@ exports.save = function (rawMessage) {
     //remove bash color chars and BEL characters. The #033 is there because sometimes the characters have already been escaped.
     rawMessage = rawMessage.replace(/(\x1B|#033)\[([0-9]{1,3}((;[0-9]{1,3})*)?)?[m|K]/g, '').replace(/(\x07|#007)/g, ''); //TODO: move into pre-processor?
 
-    syslogParser.parse(rawMessage, function (parsed_message) {
-      db.getLastMessage(function (last_message) {
-        if (last_message) {
+    syslogParser.parse(rawMessage, function (parsedMessage) {
+      db.getLastMessage(function (lastMessage) {
+        if (lastMessage) {
           //This happens when the message could not be parsed. In that case we swap in the originalMessage
-          if (parsed_message['message'] == undefined) {
-            parsed_message['message'] = parsed_message['originalMessage'];
-            console.log('Message could not be parsed: ' + parsed_message['originalMessage']);
+          if (parsedMessage['message'] === undefined) {
+            parsedMessage['message'] = parsedMessage['originalMessage'];
+            console.log('Message could not be parsed: ' + parsedMessage['originalMessage']);
           }
 
-          for (var i in preprocessors.module_holder) {
+          for (var i in preprocessors.moduleHolder) {
             try {
-              parsed_message = preprocessors.module_holder[i](parsed_message);
+              parsedMessage = preprocessors.moduleHolder[i](parsedMessage);
             } catch (e) {
-              console.log('Preprocessor threw an exception. [' + preprocessors.module_holder[i] + '] ', e);
+              console.log('Preprocessor threw an exception. [' + preprocessors.moduleHolder[i] + '] ', e);
             }
           }
 
           //add additional parts first.
-          parsed_message['timestamp'] = now;
-          parsed_message['hostname'] = os.hostname();
-          parsed_message['keywords'] = clean_keywords(parsed_message['message'].toLowerCase().split(' '));
-          parsed_message['message_hash'] = crypto.createHash('sha1').update(parsed_message['message']).digest("hex");
-          parsed_message['previous_hash'] = last_message[0] ? last_message[0].hash : '';
-          parsed_message['hash'] = crypto.createHash('sha1').update(JSON.stringify(parsed_message)).digest("hex");
+          parsedMessage['timestamp'] = now;
+          parsedMessage['hostname'] = os.hostname();
+          parsedMessage['keywords'] = cleanKeywords(parsedMessage['message'].toLowerCase().split(' '));
+          parsedMessage['messageHash'] = crypto.createHash('sha1').update(parsedMessage['message']).digest('hex');
+          parsedMessage['previousHash'] = lastMessage[0] ? lastMessage[0].hash : '';
+          parsedMessage['hash'] = crypto.createHash('sha1').update(JSON.stringify(parsedMessage)).digest('hex');
 
-          db.saveMessage(parsed_message, function (message) {
+          db.saveMessage(parsedMessage, function (message) {
             if (message) {
-              console.log('save', parsed_message);
-              alert.check(parsed_message);
+              alert.check(parsedMessage);
             } else {
               console.log('Message was not saved.');
             }
@@ -60,7 +59,7 @@ exports.save = function (rawMessage) {
   }
 };
 
-exports.send_message = function (message) {
+exports.sendMessage = function (message) {
   var msg = glossy.produce({
     facility: 'local4',
     severity: 'info',
@@ -72,25 +71,25 @@ exports.send_message = function (message) {
   });
   bmsg = new Buffer(msg);
 
-  if(config.get('tcp')){
+  if (config.get('tcp')) {
     var client = new net.Socket();
-    client.connect(config.get('tcp_port'), '0.0.0.0', function() {
+    client.connect(config.get('tcp_port'), '0.0.0.0', function () {
       client.write(msg);
       client.destroy();
     });
   } else {
-    var client = dgram.createSocket("udp4");
-      client.send(bmsg, 0, bmsg.length, 5140, "0.0.0.0", function(err, bytes) {
-        if(err) console.log("Could not log message: " + err);
-        client.close();
-      });
+    var client = dgram.createSocket('udp4');
+    client.send(bmsg, 0, bmsg.length, 5140, '0.0.0.0', function (err, bytes) {
+      if (err) console.log('Could not log message: ' + err);
+      client.close();
+    });
   }
-}
+};
 
-function clean_keywords(array) {
+function cleanKeywords(array) {
   for (var i = array.length - 1; i >= 0; i--) {
     var punct = /^[^\d\w\s]+|[^\d\w\s]+$/g;
-    if (array[i].match(punct, '')){
+    if (array[i].match(punct, '')) {
       array[i] = array[i].replace(punct, '');
     }
 

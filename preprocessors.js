@@ -1,17 +1,17 @@
 var config = require('./config.js')
     , fs = require('fs')
     , path = require('path')
-    , module_holder = {};
+    , moduleHolder = {};
 
-function load_modules(module_path) {
-  fs.lstat(module_path, function (err, stat) {
-    if(err){
+function loadModules(modulePath) {
+  fs.lstat(modulePath, function (err, stat) {
+    if (err) {
       console.log('Error occured trying to stat preprocessor file: ', err);
       return;
     }
 
     if (!stat.isDirectory()) {
-      require(module_path)(module_holder);
+      require(modulePath)(moduleHolder);
     } else {
       console.log('Preprocessors must be files, not directories.');
     }
@@ -22,8 +22,8 @@ var pp = config.get('preprocessors');
 if (pp) {
   for (var i = 0; i < pp.length; i++) {
     var p = path.join(__dirname, 'preprocessors', pp[i]);
-    load_modules(p);
+    loadModules(p);
   }
 
-  exports.module_holder = module_holder;
+  exports.moduleHolder = moduleHolder;
 }

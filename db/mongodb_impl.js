@@ -90,13 +90,14 @@ module.exports.getMessages = function (queryString, callback) {
 };
 
 module.exports.saveMessage = function (message, callback) {
-  saveDocument('messages', message, function(err, message) {
-    if (err){
+  saveDocument('messages', message, function (err, message) {
+    if (err) {
       console.log('Could not save message:', err);
+      return;
     }
 
     if (!callback) {
-      throw new Error("Callback function is required for saveMessage!");
+      throw new Error('Callback function is required for saveMessage!');
     }
     callback(message);
   });
@@ -104,30 +105,30 @@ module.exports.saveMessage = function (message, callback) {
 
 module.exports.getLastMessage = function (callback) {
   db.collection('messages', function (err, collection) {
-    collection.find({}, {'hash': 1}).sort({_id: -1}).limit(1).toArray(function (err, last_message) {
-      if (!err && last_message) {
-        callback(last_message);
-      } else {
+    collection.find({}, {'hash': 1}).sort({_id: -1}).limit(1).toArray(function (err, lastMessage) {
+      if (err) {
         console.log('Err', err);
         callback();
+        return
       }
+      callback(lastMessage);
     });
   });
 };
 
 module.exports.saveUser = function (user, callback) {
-  saveDocument('users', user, function(err, user) {
+  saveDocument('users', user, function (err, user) {
     if (!callback) {
-      throw new Error("Callback function is required for saveUser!");
+      throw new Error('Callback function is required for saveUser!');
     }
     callback(user);
   });
 };
 
 module.exports.saveAlert = function (alert, callback) {
-  saveDocument('alerts', alert, function(err, alert) {
+  saveDocument('alerts', alert, function (err, alert) {
     if (!callback) {
-      throw new Error("Callback function is required for saveAlert!");
+      throw new Error('Callback function is required for saveAlert!');
     }
     callback(alert);
   });
@@ -151,10 +152,10 @@ function findOneDocument(collectionName, args, callback) {
     collection.findOne(args, function (err, entity) {
       if (err) {
         console.log('Could not find document: ' + args, err);
-        callback(null);
-      } else {
-        callback(entity);
+        callback();
+        return
       }
+      callback(entity);
     });
   });
 }
@@ -163,7 +164,12 @@ function findDocuments(collectionName, args, callback) {
   db.collection(collectionName, function (err, collection) {
     var entities = [];
     collection.find(args).each(function (err, entity) {
-      if (!err && entity) {
+      if (err) {
+        callback(entities);
+        return
+      }
+
+      if (entity) {
         entities.push(entity);
       } else {
         callback(entities);
@@ -175,7 +181,7 @@ function findDocuments(collectionName, args, callback) {
 function saveDocument(collectionName, document, callback) {
   db.collection(collectionName, function (err, collection) {
     collection.save(document, {safe: true}, function (err, entity) {
-      if (entity == 1){
+      if (entity === 1) {
         callback(err, document);
       } else {
         callback(err, entity);
@@ -184,9 +190,9 @@ function saveDocument(collectionName, document, callback) {
   });
 }
 
-function pop(dictionary, key){
-	var e = dictionary[key];
-	delete dictionary[key];
-	return e;
+function pop(dictionary, key) {
+  var e = dictionary[key];
+  delete dictionary[key];
+  return e;
 }
 
