@@ -45,7 +45,7 @@ var EMAIL_LIST_SCHEMA = {
   required: true
 };
 
-if (process.argv.length < 3){
+if (process.argv.length < 3) {
   showHelp();
   process.exit(1);
 }
@@ -78,6 +78,9 @@ switch (process.argv[3]) {
     break;
   case 'help':
     showHelp();
+    break;
+  case 'search':
+    search(process.argv.slice(4));
     break;
   default:
     search(process.argv.slice(3));
@@ -322,10 +325,14 @@ function saveToken(token) {
 }
 
 function withToken(callback) {
-  fs.readFile(TOKEN_FILE, function (err, token) {
-    if (err) throw err;
-    callback(token);
-  });
+  if (fs.existsSync(TOKEN_FILE)) { //Sync call fine for client.js
+    fs.readFile(TOKEN_FILE, function (err, token) {
+      if (err) throw err;
+      callback(token);
+    });
+  } else {
+    callback();
+  }
 }
 
 function request(options, callback) {
