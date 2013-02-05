@@ -4,11 +4,6 @@ var http = require('http')
     , fs = require('fs')
     , querystring = require('querystring');
 
-var LOG_SERVER = 'localhost';
-var LOG_SERVER_PORT = 8000;
-
-var TOKEN_FILE = process.env['HOME'] + '/.log-o.token';
-
 var EMAIL_SCHEMA = {
   required: true
 };
@@ -50,7 +45,16 @@ var EMAIL_LIST_SCHEMA = {
   required: true
 };
 
-switch (process.argv[2]) {
+if (process.argv.length < 3){
+  showHelp();
+  process.exit(1);
+}
+
+var DEFAULT_LOG_SERVER_PORT = 8000;
+var DEFAULT_LOG_SERVER = process.argv[2];
+var TOKEN_FILE = process.env['HOME'] + '/.log-o.' + DEFAULT_LOG_SERVER;
+
+switch (process.argv[3]) {
   case 'auth':
     auth();
     break;
@@ -72,8 +76,11 @@ switch (process.argv[2]) {
   case 'alertadd':
     alertAdd();
     break;
+  case 'help':
+    showHelp();
+    break;
   default:
-    search(process.argv.slice(2));
+    search(process.argv.slice(3));
 }
 
 function userAdd() {
@@ -85,8 +92,8 @@ function userAdd() {
 
     withToken(function (token) {
       var req = request({
-        host: LOG_SERVER,
-        port: LOG_SERVER_PORT,
+        host: DEFAULT_LOG_SERVER,
+        port: DEFAULT_LOG_SERVER_PORT,
         path: '/user/add',
         method: 'POST',
         headers: {
@@ -107,8 +114,8 @@ function userList() {
 
   withToken(function (token) {
     var req = request({
-      host: LOG_SERVER,
-      port: LOG_SERVER_PORT,
+      host: DEFAULT_LOG_SERVER,
+      port: DEFAULT_LOG_SERVER_PORT,
       path: '/user/list',
       method: 'POST',
       headers: {
@@ -137,8 +144,8 @@ function userReset() {
 
     withToken(function (token) {
       var req = request({
-        host: LOG_SERVER,
-        port: LOG_SERVER_PORT,
+        host: DEFAULT_LOG_SERVER,
+        port: DEFAULT_LOG_SERVER_PORT,
         path: '/user/reset',
         method: 'POST',
         headers: {
@@ -175,8 +182,8 @@ function changePassword() {
 
     withToken(function (token) {
       var req = request({
-        host: LOG_SERVER,
-        port: LOG_SERVER_PORT,
+        host: DEFAULT_LOG_SERVER,
+        port: DEFAULT_LOG_SERVER_PORT,
         path: '/user/password',
         method: 'POST',
         headers: {
@@ -213,8 +220,8 @@ function alertAdd() {
 
     withToken(function (token) {
       var req = request({
-        host: LOG_SERVER,
-        port: LOG_SERVER_PORT,
+        host: DEFAULT_LOG_SERVER,
+        port: DEFAULT_LOG_SERVER_PORT,
         path: '/alert/add',
         method: 'POST',
         headers: {
@@ -244,8 +251,8 @@ function auth() {
     });
 
     var req = request({
-      host: LOG_SERVER,
-      port: LOG_SERVER_PORT,
+      host: DEFAULT_LOG_SERVER,
+      port: DEFAULT_LOG_SERVER_PORT,
       path: '/auth',
       method: 'POST',
       headers: {
@@ -268,8 +275,8 @@ function logout(args) {
 
   withToken(function (token) {
     var req = request({
-      host: LOG_SERVER,
-      port: LOG_SERVER_PORT,
+      host: DEFAULT_LOG_SERVER,
+      port: DEFAULT_LOG_SERVER_PORT,
       path: '/logout',
       headers: {
         'Content-Type': 'application/json',
@@ -283,7 +290,7 @@ function logout(args) {
 function search(args) {
   withToken(function (token) {
     var req = request({
-      host: LOG_SERVER,
+      host: DEFAULT_LOG_SERVER,
       port: 8000,
       path: '/search?q=' + encodeURIComponent(args.join(' ')),
       headers: {
@@ -302,6 +309,10 @@ function search(args) {
     });
     req.end();
   });
+}
+
+function showHelp() {
+  console.log('node client.js <host(string)> <action({auth|useradd|userlist|reset|passwd|logout|alertadd|help|search})> [<args(string)>]');
 }
 
 function saveToken(token) {
