@@ -34,6 +34,27 @@ module.exports.init = function (mongodb, username, password) {
   });
 };
 
+/******************************************************************
+ *
+ * User Functions.
+ *
+ ******************************************************************/
+
+module.exports.saveUser = function (user, callback) {
+  saveDocument('users', user, function (err, user) {
+    if (!callback) {
+      throw new Error('Callback function is required for saveUser!');
+    }
+    callback(user);
+  });
+};
+
+module.exports.getUsers = function (callback) {
+  findDocuments('users', {}, function (users) {
+    callback(users);
+  });
+};
+
 module.exports.getUserByToken = function (token, callback) {
   findOneDocument('users', {token: token}, function (user) {
     callback(user);
@@ -52,9 +73,23 @@ module.exports.getUserByEmailAndPassword = function (email, password, callback) 
   });
 };
 
-module.exports.getUsers = function (callback) {
-  findDocuments('users', {}, function (users) {
-    callback(users);
+/******************************************************************
+ *
+ * Message Functions.
+ *
+ ******************************************************************/
+
+module.exports.saveMessage = function (message, callback) {
+  saveDocument('messages', message, function (err, message) {
+    if (err) {
+      console.log('Could not save message:', err);
+      return;
+    }
+
+    if (!callback) {
+      throw new Error('Callback function is required for saveMessage!');
+    }
+    callback(message);
   });
 };
 
@@ -89,20 +124,6 @@ module.exports.getMessages = function (queryString, callback) {
   });
 };
 
-module.exports.saveMessage = function (message, callback) {
-  saveDocument('messages', message, function (err, message) {
-    if (err) {
-      console.log('Could not save message:', err);
-      return;
-    }
-
-    if (!callback) {
-      throw new Error('Callback function is required for saveMessage!');
-    }
-    callback(message);
-  });
-};
-
 module.exports.getLastMessage = function (callback) {
   db.collection('messages', function (err, collection) {
     collection.find({}, {'hash': 1}).sort({_id: -1}).limit(1).toArray(function (err, lastMessage) {
@@ -116,14 +137,11 @@ module.exports.getLastMessage = function (callback) {
   });
 };
 
-module.exports.saveUser = function (user, callback) {
-  saveDocument('users', user, function (err, user) {
-    if (!callback) {
-      throw new Error('Callback function is required for saveUser!');
-    }
-    callback(user);
-  });
-};
+/******************************************************************
+ *
+ * Alert Functions.
+ *
+ ******************************************************************/
 
 module.exports.saveAlert = function (alert, callback) {
   saveDocument('alerts', alert, function (err, alert) {
@@ -146,6 +164,12 @@ module.exports.getActiveAlerts = function (callback) {
     });
   });
 };
+
+/******************************************************************
+ *
+ * Utility Functions.
+ *
+ ******************************************************************/
 
 function findOneDocument(collectionName, args, callback) {
   db.collection(collectionName, function (err, collection) {

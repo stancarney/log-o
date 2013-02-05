@@ -10,7 +10,8 @@ var db = require('./db.js')
     , querystring = require('querystring')
     , email = require('./email.js')
     , alert = require('./alert.js')
-    , user = require('./user.js');
+    , user = require('./user.js')
+    , password = require('password');
 
 http.createServer(function (req, res) {
   var urlParts = url.parse(req.url, true);
