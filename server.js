@@ -99,11 +99,6 @@ function userReset(req, res, urlParts) {
     isAuth(req, res, function (user) {
       db.getUserByEmail(res.post['email'], function (resetUser) {
 
-        if (err) {
-          writeResponseMessage(res, 500, 'could_not_reset_user');
-          return;
-        }
-
         if (!resetUser) {
           writeResponseMessage(res, 404, 'user_not_found');
           return;
