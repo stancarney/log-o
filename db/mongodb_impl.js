@@ -26,6 +26,9 @@ module.exports.init = function (mongodb, username, password) {
           collection.ensureIndex({host: 1, facility: 1}, function (err, result) {
             assert.equal(null, err);
           });
+          collection.ensureIndex({message: 1}, function (err, result) {
+            assert.equal(null, err);
+          });
         });
       });
     } else {
