@@ -1,30 +1,26 @@
 var config = require('./config.js')
     , db = require('./db.js')
-    , email = require('./email.js');
+    , email = require('./email.js')
+    , utils = require('./utils.js');
 
-exports.add = function (name, regex, modifiers, recipients, enable, callback) {
-  //TODO: Validate regex
-  if (modifiers) {
-    modifiers = modifiers.split('').sort().join('');
-  }
-  db.saveAlert({name: name, regex: regex, modifiers: modifiers, recipients: recipients.replace(/\s/g, '').split(','), enable: enable || true}, function (alert) {
-    callback(alert);
+module.exports.add = function (req, res, urlParts) {
+  utils.parsePost(req, res, function () {
+    utils.isAuth(req, res, function (user) {
+      //TODO: check perms
+      var name = res.post['name'];
+      var regex = res.post['regex'];
+      var modifiers = res.post['modifiers'];
+      var recipients = res.post['recipients'].replace(/\s/g, '').split(',');
+      var enable = res.post['enable'] || true;
+
+      if (modifiers) {
+        modifiers = modifiers.split('').sort().join('');
+      }
+      db.saveAlert({name: name, regex: regex, modifiers: modifiers, recipients: recipients, enable: enable}, function (alert) {
+        utils.writeResponseMessage(res, 200, 'success');
+      });
+    });
   });
-};
-
-//TODO: Implement
-exports.edit = function (name, regex, enable) {
-
-};
-
-//TODO: Implement
-exports.delete = function (id) {
-
-};
-
-//TODO: Implement
-exports.list = function () {
-
 };
 
 exports.check = function (parsedMessage) {
