@@ -16,7 +16,8 @@
     "prompt": "*",
     "password": "*",
     "emailjs": "*",
-    "microtime": "*"
+    "microtime": "*",
+    "bcrypt": "*"
   },
   "license": "GPLv3",
   "engine": {

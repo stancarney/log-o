@@ -3,27 +3,37 @@ var db = require('./db.js')
     , utils = require('./utils.js')
     , syslog = require('./syslog.js')
     , password = require('password')
-    , crypto = require('crypto');
+    , crypto = require('crypto')
+    , bcrypt = require('bcrypt');
 
 module.exports.auth = function (req, res) {
   utils.parsePost(req, res, function () {
-    db.getUserByEmailAndPassword(res.post['email'], res.post['password'], function (user) {
+    db.getUserByEmail(res.post['email'], function (user) {
 
       if (!user) {
-        syslog.sendMessage('Failed Login: ' + res.post['email'] + ' IP: ' + req.connection.remoteAddress);
+        syslog.sendMessage('Failed Login. No User Found: ' + res.post['email'] + ' IP: ' + req.connection.remoteAddress);
         utils.writeResponseMessage(res, 401, 'auth_failed');
         return;
       }
 
-      utils.setAuthToken(req, res, user);
-      db.saveUser(user, function (user) {
-        if (user.forcePasswordChange) {
-          syslog.sendMessage('Successful Login (force password change): ' + res.post['email'] + ' IP: ' + req.connection.remoteAddress);
-          utils.writeResponseMessage(res, 200, 'force_password_change');
-        } else {
-          syslog.sendMessage('Successful Login: ' + res.post['email'] + ' IP: ' + req.connection.remoteAddress);
-          utils.writeResponseMessage(res, 200, 'success');
+      bcrypt.compare(res.post['password'], user.password, function (err, result) {
+
+        if (!result) {
+          syslog.sendMessage('Failed Login. Invalid Password: ' + res.post['email'] + ' IP: ' + req.connection.remoteAddress);
+          utils.writeResponseMessage(res, 401, 'auth_failed');
+          return;
         }
+
+        utils.setAuthToken(req, res, user);
+        db.saveUser(user, function (user) {
+          if (user.forcePasswordChange) {
+            syslog.sendMessage('Successful Login (force password change): ' + res.post['email'] + ' IP: ' + req.connection.remoteAddress);
+            utils.writeResponseMessage(res, 200, 'force_password_change');
+          } else {
+            syslog.sendMessage('Successful Login: ' + res.post['email'] + ' IP: ' + req.connection.remoteAddress);
+            utils.writeResponseMessage(res, 200, 'success');
+          }
+        });
       });
     });
   });
@@ -41,11 +51,14 @@ module.exports.add = function (req, res) {
       }
 
       var clearPassword = password(3);
-      var hashedPassword = crypto.createHash('sha1').update(clearPassword).digest('hex');
-      db.saveUser({email: emailAddress, password: hashedPassword, forcePasswordChange: true}, function (newUser) {
-        syslog.sendMessage('User added: ' + res.post['email'] + ' by: ' + authUser.email + ' IP: ' + req.connection.remoteAddress);
-        email.sendWelcome(newUser.email, clearPassword);
-        utils.writeResponseMessage(res, 200, 'success');
+      bcrypt.genSalt(10, function (err, salt) {
+        bcrypt.hash(clearPassword, salt, function (err, hashedPassword) {
+          db.saveUser({email: emailAddress, password: hashedPassword, forcePasswordChange: true}, function (newUser) {
+            syslog.sendMessage('User added: ' + res.post['email'] + ' by: ' + authUser.email + ' IP: ' + req.connection.remoteAddress);
+            email.sendWelcome(newUser.email, clearPassword);
+            utils.writeResponseMessage(res, 200, 'success');
+          });
+        });
       });
     });
   });
@@ -56,19 +69,17 @@ module.exports.add = function (req, res) {
  */
 module.exports.addAdmin = function () {
   db.getUsers(function (users) {
-
-    if (users == []) {
+    if (!users && users.length) {
       return;
     }
 
-    try {
-      var hashedPassword = crypto.createHash('sha1').update('admin').digest('hex');
-      db.saveUser({email: 'admin', password: hashedPassword, forcePasswordChange: true}, function (newUser) {
-        syslog.sendMessage('User added: ' + 'admin');
+    bcrypt.genSalt(10, function (err, salt) {
+      bcrypt.hash('admin', salt, function (err, hashedPassword) {
+        db.saveUser({email: 'admin', password: hashedPassword, forcePasswordChange: true}, function (newUser) {
+          syslog.sendMessage('User added: admin');
+        });
       });
-    } catch (e) {
-      console.log('Could not save admin user.', e);
-    }
+    });
   });
 };
 
@@ -123,15 +134,19 @@ module.exports.changePassword = function (req, res) {
         return;
       }
 
-      user.password = crypto.createHash('sha1').update(res.post['newPassword']).digest('hex');
-      user.forcePasswordChange = false;
-      syslog.sendMessage('Successful Password Change: ' + user.email + ' IP: ' + req.connection.remoteAddress);
-      db.saveUser(user, function (user) {
-        if (user) {
-          utils.writeResponseMessage(res, 200, 'success');
-        } else {
-          utils.writeResponseMessage(res, 500, 'could_not_reset_user');
-        }
+      bcrypt.genSalt(10, function (err, salt) {
+        bcrypt.hash(res.post['newPassword'], salt, function (err, hashedPassword) {
+          user.password = hashedPassword;
+          user.forcePasswordChange = false;
+          syslog.sendMessage('Successful Password Change: ' + user.email + ' IP: ' + req.connection.remoteAddress);
+          db.saveUser(user, function (user) {
+            if (user) {
+              utils.writeResponseMessage(res, 200, 'success');
+            } else {
+              utils.writeResponseMessage(res, 500, 'could_not_reset_user');
+            }
+          });
+        });
       });
     });
   });
