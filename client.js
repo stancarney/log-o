@@ -1,8 +1,7 @@
 var http = require('http')
     , prompt = require('prompt')
     , moment = require('moment')
-    , fs = require('fs')
-    , querystring = require('querystring');
+    , fs = require('fs');
 
 var EMAIL_SCHEMA = {
   required: true

@@ -1,17 +1,11 @@
 var db = require('./db.js')
     , syslog = require('./syslog.js')
-    , udp = require('./udp.js')
-    , tcp = require('./tcp.js')
-    , email = require('./email.js')
     , alert = require('./alert.js')
-    , password = require('password')
     , user = require('./user.js')
     , utils = require('./utils.js')
     , http = require('http')
     , url = require('url')
-    , crypto = require('crypto')
     , os = require('os')
-    , querystring = require('querystring')
     , config = require('./config.js');
 
 /*
@@ -61,6 +55,10 @@ server.on('listening', function () {
   var address = server.address();
   var msg = 'HTTP Server started on ' + os.hostname() + ' (' + address.address + ':' + address.port + ')';
   syslog.sendMessage(msg);
+
+  //Start listeners
+  require('./udp.js');
+  require('./tcp.js');
 });
 
 server.on('close', function () {
