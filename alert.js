@@ -3,7 +3,7 @@ var config = require('./config.js')
     , email = require('./email.js')
     , utils = require('./utils.js');
 
-module.exports.add = function (req, res, urlParts) {
+module.exports.add = function (req, res) {
   utils.parsePost(req, res, function () {
     utils.isAuth(req, res, function (user) {
       //TODO: check perms

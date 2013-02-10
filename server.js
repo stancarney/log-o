@@ -11,32 +11,41 @@ var db = require('./db.js')
     , url = require('url')
     , crypto = require('crypto')
     , os = require('os')
-    , querystring = require('querystring');
+    , querystring = require('querystring')
+    , config = require('./config.js');
 
-http.createServer(function (req, res) {
+/*
+ * Adds default admin user if no other users exists.
+ * i.e. immediately after install.
+ * email: admin
+ * password: admin
+ */
+user.addAdmin();
+
+var server = http.createServer(function (req, res) {
   var urlParts = url.parse(req.url, true);
 
   switch (urlParts.pathname) {
     case '/auth':
-      user.auth(req, res, urlParts);
+      user.auth(req, res);
       break;
     case '/user/add':
-      user.add(req, res, urlParts);
+      user.add(req, res);
       break;
     case '/user/list':
-      user.list(req, res, urlParts);
+      user.list(req, res);
       break;
     case '/user/reset':
-      user.reset(req, res, urlParts);
+      user.reset(req, res);
       break;
     case '/user/password':
-      user.changePassword(req, res, urlParts);
+      user.changePassword(req, res);
       break;
     case '/logout':
-      user.logout(req, res, urlParts);
+      user.logout(req, res);
       break;
     case '/alert/add':
-      alert.add(req, res, urlParts);
+      alert.add(req, res);
       break;
     case '/search':
       search(req, res, urlParts);
@@ -44,7 +53,21 @@ http.createServer(function (req, res) {
     default:
       utils.writeResponseMessage(res, 404, 'page_not_found');
   }
-}).listen(8000);
+});
+
+server.listen(config.get('http_port'));
+
+server.on('listening', function () {
+  var address = server.address();
+  var msg = 'HTTP Server started on ' + os.hostname() + ' (' + address.address + ':' + address.port + ')';
+  syslog.sendMessage(msg);
+});
+
+server.on('close', function () {
+  var address = server.address();
+  var msg = 'HTTP Server started on ' + os.hostname() + ' (' + address.address + ':' + address.port + ')';
+  syslog.sendMessage(msg);
+});
 
 function search(req, res, urlParts) {
   utils.isAuth(req, res, function (user) {
@@ -61,3 +84,4 @@ function search(req, res, urlParts) {
     });
   });
 }
+

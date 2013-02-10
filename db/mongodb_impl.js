@@ -1,4 +1,5 @@
-var assert = require('assert');
+var assert = require('assert')
+    , crypto = require('crypto');
 
 var db = null;
 
@@ -71,7 +72,13 @@ module.exports.getUserByEmail = function (email, callback) {
 };
 
 module.exports.getUserByEmailAndPassword = function (email, password, callback) {
-  findOneDocument('users', {email: email, password: password}, function (user) {
+
+  if (!password) {
+    return null;
+  }
+
+  var hashedPassword = crypto.createHash('sha1').update(password).digest('hex');
+  findOneDocument('users', {email: email, password: hashedPassword}, function (user) {
     callback(user);
   });
 };
@@ -173,6 +180,13 @@ module.exports.getActiveAlerts = function (callback) {
  * Utility Functions.
  *
  ******************************************************************/
+
+/*
+ * Returns a boolean stating if the db is available for read and write operations.
+ */
+module.exports.isAvailable = function isAvailable() {
+  return db && db.serverConfig.isConnected();
+};
 
 function findOneDocument(collectionName, args, callback) {
   db.collection(collectionName, function (err, collection) {

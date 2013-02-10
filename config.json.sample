@@ -9,5 +9,6 @@
 	"udp_port": 5140,
 	"tcp": true,
 	"tcp_port": 5140,
+	"http_port": 8000,
 	"preprocessors": [ "console_echo.js" ]
 }
