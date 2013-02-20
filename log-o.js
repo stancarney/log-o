@@ -6,6 +6,7 @@ var db = require('./db.js')
     , http = require('http')
     , url = require('url')
     , os = require('os')
+    , util = require('util')
     , config = require('./config.js');
 
 /*
@@ -69,8 +70,8 @@ server.on('close', function () {
 
 function search(req, res, urlParts) {
   utils.isAuth(req, res, function (user) {
-    var qs = urlParts.query['q'] || '';
-    syslog.sendMessage(user.email + ' viewed the logs with: ' + qs.toString());
+    var qs = urlParts.query || '';
+    syslog.sendMessage(user.email + ' viewed the logs with: ' + util.inspect(qs).replace(/(\r\n|\n|\r)/gm,""));
     db.getMessages(qs, function (messages) {
       res.writeHead(200, {'Content-Type': 'application/json'});
       if (messages) {

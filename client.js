@@ -1,7 +1,8 @@
 var http = require('http')
     , prompt = require('prompt')
     , moment = require('moment')
-    , fs = require('fs');
+    , fs = require('fs')
+    , querystring = require('querystring');
 
 var EMAIL_SCHEMA = {
   required: true
@@ -291,10 +292,23 @@ function logout(args) {
 
 function search(args) {
   withToken(function (token) {
+
+    //Convert command line into query string matching q={query}&limit=N&skip=N etc...
+    var qs = [];
+    for (var i in args) {
+      var q = args[i].split('=');
+      if (q.length === 2) {
+        qs[q[0]] = q[1];
+      } else {
+        //only 1 element, assume it is the value for q=
+        qs['q'] = q[0];
+      }
+    }
+
     var req = request({
       host: DEFAULT_LOG_SERVER,
       port: 8000,
-      path: '/search?q=' + encodeURIComponent(args.join(' ')),
+      path: '/search?' + querystring.stringify(qs),
       headers: {
         'Content-Type': 'application/json',
         'Cookie': 'auth=' + token
