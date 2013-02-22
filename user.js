@@ -69,7 +69,7 @@ module.exports.add = function (req, res) {
  */
 module.exports.addAdmin = function () {
   db.getUsers(function (users) {
-    if (!users && users.length) {
+    if (!users || users.length > 0) {
       return;
     }
 
