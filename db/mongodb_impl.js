@@ -134,19 +134,6 @@ module.exports.getMessages = function (queryString, callback) {
   });
 };
 
-module.exports.getLastMessage = function (callback) {
-  db.collection('messages', function (err, collection) {
-    collection.find({}, {'hash': 1}).sort({_id: -1}).limit(1).toArray(function (err, lastMessage) {
-      if (err) {
-        console.log('Err', err);
-        callback();
-        return
-      }
-      callback(lastMessage);
-    });
-  });
-};
-
 /******************************************************************
  *
  * Alert Functions.

@@ -18,39 +18,29 @@ exports.save = function (rawMessage) {
     rawMessage = rawMessage.replace(/(\x1B|#033)\[([0-9]{1,3}((;[0-9]{1,3})*)?)?[m|K]/g, '').replace(/(\x07|#007)/g, ''); //TODO: move into pre-processor?
 
     syslogParser.parse(rawMessage, function (parsedMessage) {
-      db.getLastMessage(function (lastMessage) {
-        if (lastMessage) {
-          //This happens when the message could not be parsed. In that case we swap in the originalMessage
-          if (parsedMessage['message'] === undefined) {
-            parsedMessage['message'] = parsedMessage['originalMessage'];
-            console.log('Message could not be parsed: ' + parsedMessage['originalMessage']);
-          }
+      //This happens when the message could not be parsed. In that case we swap in the originalMessage
+      if (parsedMessage['message'] === undefined) {
+        parsedMessage['message'] = parsedMessage['originalMessage'];
+        console.log('Message could not be parsed: ' + parsedMessage['originalMessage']);
+      }
 
-          for (var i in preprocessors.moduleHolder) {
-            try {
-              parsedMessage = preprocessors.moduleHolder[i](parsedMessage);
-            } catch (e) {
-              console.log('Preprocessor threw an exception. [' + preprocessors.moduleHolder[i] + '] ', e);
-            }
-          }
+      for (var i in preprocessors.moduleHolder) {
+        try {
+          parsedMessage = preprocessors.moduleHolder[i](parsedMessage);
+        } catch (e) {
+          console.log('Preprocessor threw an exception. [' + preprocessors.moduleHolder[i] + '] ', e);
+        }
+      }
 
-          //add additional parts first.
-          parsedMessage['timestamp'] = now;
-          parsedMessage['hostname'] = os.hostname();
-          parsedMessage['keywords'] = cleanKeywords(parsedMessage['message'].toLowerCase().split(' '));
-          parsedMessage['messageHash'] = crypto.createHash('sha1').update(parsedMessage['message']).digest('hex');
-          parsedMessage['previousHash'] = lastMessage[0] ? lastMessage[0].hash : '';
-          parsedMessage['hash'] = crypto.createHash('sha1').update(JSON.stringify(parsedMessage)).digest('hex');
+      parsedMessage['timestamp'] = now; //microseconds used to sort
+      parsedMessage['hostname'] = os.hostname();
+      parsedMessage['keywords'] = cleanKeywords(parsedMessage['message'].toLowerCase().split(' '));
 
-          db.saveMessage(parsedMessage, function (message) {
-            if (message) {
-              alert.check(parsedMessage);
-            } else {
-              console.log('Message was not saved.');
-            }
-          });
+      db.saveMessage(parsedMessage, function (message) {
+        if (message) {
+          alert.check(parsedMessage);
         } else {
-          console.log('No last message found.');
+          console.log('Message was not saved.');
         }
       });
     });
