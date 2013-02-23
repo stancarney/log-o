@@ -15,6 +15,10 @@ exports.sendWelcome = function (email, password) {
   sendEmail(email, 'Welcome to Log-o', 'Here is your password: ' + password);
 };
 
+exports.sendReset = function (email, adminEmail, password) {
+  sendEmail(email, 'Log-o Account Reset', 'Your log-o account has been reset by ' + adminEmail + '. Here is your new password: ' + password);
+};
+
 exports.sendAlert = function (email, alert, parsedMessage) {
   sendEmail(email, 'ALERT: ' + alert.name,
       'ALERT hit for rule named: ' +

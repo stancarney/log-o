@@ -8,7 +8,6 @@ module.exports.add = function (req, res) {
     utils.isAuth(req, res, function (user) {
       //TODO: check perms
       var alertParams = {name: res.post['name'], regex: res.post['regex'], modifiers: res.post['modifiers'], recipients: res.post['recipients'].replace(/\s/g, '').split(','), enable: !!(res.post['enable'] === 'true'), dateAdded: new Date()};
-      console.log(alertParams);
 
       if (alertParams.modifiers) {
         alertParams.modifiers = alertParams.modifiers.split('').sort().join('');  //TODO: Verify on gim is passed in!
@@ -24,7 +23,6 @@ module.exports.add = function (req, res) {
           alert = alertParams;
         }
 
-        console.log(alert);
         db.saveAlert(alert, function (alert) {
           utils.writeResponseMessage(res, 200, 'success');
         });

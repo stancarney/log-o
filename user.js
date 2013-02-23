@@ -109,16 +109,21 @@ module.exports.reset = function (req, res) {
           return;
         }
 
-        resetUser.forcePasswordChange = true;
-        resetUser.password = password(3);
-        syslog.sendMessage('User reset: ' + resetUser.email + ' by: ' + user.email + ' IP: ' + req.connection.remoteAddress);
-        email.sendWelcome(resetUser.email, resetUser.password);
-        db.saveUser(resetUser, function (user) {
-          if (user) {
-            utils.writeResponseMessage(res, 200, 'success');
-          } else {
-            utils.writeResponseMessage(res, 500, 'could_not_save_user');
-          }
+        var clearPassword = password(3);
+        bcrypt.genSalt(10, function (err, salt) {
+          bcrypt.hash(clearPassword, salt, function (err, hashedPassword) {
+            syslog.sendMessage('User reset: ' + resetUser.email + ' by: ' + user.email + ' IP: ' + req.connection.remoteAddress);
+            email.sendReset(resetUser.email, user.email, clearPassword);
+            resetUser.forcePasswordChange = true;
+            resetUser.password = hashedPassword;
+            db.saveUser(resetUser, function (user) {
+              if (user) {
+                utils.writeResponseMessage(res, 200, 'success');
+              } else {
+                utils.writeResponseMessage(res, 500, 'could_not_save_user');
+              }
+            });
+          });
         });
       });
     });
