@@ -1,7 +1,9 @@
 var http = require('http')
     , prompt = require('prompt')
     , moment = require('moment')
+    , cliff = require('cliff')
     , fs = require('fs')
+    , util = require('util')
     , querystring = require('querystring');
 
 var EMAIL_SCHEMA = {
@@ -76,6 +78,9 @@ switch (process.argv[3]) {
   case 'alertadd':
     alertAdd();
     break;
+  case 'alertlist':
+    alertList();
+    break;
   case 'help':
     showHelp();
     break;
@@ -127,10 +132,14 @@ function userList() {
         'Cookie': 'auth=' + token
       }
     }, function (result) {
+      var rows = [
+        ['Last Access'.bold, 'Email'.bold]
+      ];
       for (var index in result) {
         var r = result[index];
-        console.log(moment(r['lastAccess']).format('MMM D YYYY, HH:mm:ss') + '\t' + r['email']);
+        rows.push([moment(r['lastAccess']).format('MMM D YYYY, HH:mm:ss'), r['email']]);
       }
+      util.puts(cliff.stringifyRows(rows));
     });
 
     req.write(postData);
@@ -240,6 +249,38 @@ function alertAdd() {
   });
 }
 
+function alertList() {
+  var postData = JSON.stringify({ });
+
+  withToken(function (token) {
+    var req = request({
+      host: DEFAULT_LOG_SERVER,
+      port: DEFAULT_LOG_SERVER_PORT,
+      path: '/alert/list',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': postData.length,
+        'Cookie': 'auth=' + token
+      }
+    }, function (result) {
+      if (result && result.length > 0) {
+        var rows = [
+          ['Date Added'.bold, 'Name'.bold, 'Regex'.bold, 'Modifiers'.bold, 'Recipients'.bold, 'Enable'.bold]
+        ];
+        for (var index in result) {
+          var r = result[index];
+          rows.push([moment(r['dateAdded']).format('MMM D YYYY, HH:mm:ss'), r['name'], r['regex'], r['modifiers'], r['recipients'], r['enable'] == true ? 'true'.green : 'false'.red]);
+        }
+        util.puts(cliff.stringifyRows(rows));
+      }
+    });
+
+    req.write(postData);
+    req.end();
+  });
+}
+
 function auth() {
   prompt.start();
   prompt.get({
@@ -328,7 +369,7 @@ function search(args) {
 }
 
 function showHelp() {
-  console.log('node client.js <host(string)> <action({auth|useradd|userlist|reset|passwd|logout|alertadd|help|search})> [<args(string)>]');
+  console.log('node client.js <host(string)> <action({auth|useradd|userlist|reset|passwd|logout|alertadd|alertlist|help|search})> [<args(string)>]');
 }
 
 function saveToken(token) {

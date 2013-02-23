@@ -17,7 +17,8 @@
     "password": "*",
     "emailjs": "*",
     "microtime": "*",
-    "bcrypt": "*"
+    "bcrypt": "*",
+    "cliff": "*"
   },
   "license": "GPLv3",
   "engine": {

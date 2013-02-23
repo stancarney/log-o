@@ -149,6 +149,12 @@ module.exports.saveAlert = function (alert, callback) {
   });
 };
 
+module.exports.getAlerts = function (callback) {
+  findDocuments('alerts', {}, function (alerts) {
+    callback(alerts);
+  });
+};
+
 module.exports.getActiveAlerts = function (callback) {
   db.collection('alerts', function (err, collection) {
     var alerts = [];
@@ -159,6 +165,15 @@ module.exports.getActiveAlerts = function (callback) {
       }
       callback(alerts);
     });
+  });
+};
+
+module.exports.getAlertByName = function (name, callback) {
+  findOneDocument('alerts', {name: name}, function (alert) {
+    if (!callback) {
+      throw new Error('Callback function is required for saveAlert!');
+    }
+    callback(alert);
   });
 };
 

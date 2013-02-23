@@ -42,6 +42,9 @@ var server = http.createServer(function (req, res) {
     case '/alert/add':
       alert.add(req, res);
       break;
+    case '/alert/list':
+      alert.list(req, res);
+      break;
     case '/search':
       search(req, res, urlParts);
       break;
