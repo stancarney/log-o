@@ -94,13 +94,13 @@ switch (process.argv[3]) {
 function userAdd() {
   prompt.start();
   prompt.get(['email'], function (err, p) {
-    logoRequest('/user/add', JSON.stringify({ email: p.email }));
+    request('/user/add', JSON.stringify({ email: p.email }));
   });
 }
 
 function userList() {
   var postData = JSON.stringify({ });
-  logoRequest('/user/list', postData, function (result) {
+  request('/user/list', postData, function (result) {
     if (result && result.length > 0) {
       var rows = [
         ['Last Access'.bold, 'Email'.bold]
@@ -117,7 +117,7 @@ function userList() {
 function userReset() {
   prompt.start();
   prompt.get(['email'], function (err, p) {
-    logoRequest('/user/reset', JSON.stringify({ email: p.email }));
+    request('/user/reset', JSON.stringify({ email: p.email }));
   });
 }
 
@@ -137,7 +137,7 @@ function changePassword() {
       util.puts('Passwords do not match!');
       return;
     }
-    logoRequest('/user/password', JSON.stringify({ newPassword: p.newPassword }));
+    request('/user/password', JSON.stringify({ newPassword: p.newPassword }));
   });
 }
 
@@ -159,12 +159,12 @@ function alertAdd() {
       recipients: p.recipients,
       enable: p.enable
     });
-    logoRequest('/alert/add', postData);
+    request('/alert/add', postData);
   });
 }
 
 function alertList() {
-  logoRequest('/alert/list', JSON.stringify({ }), function (result) {
+  request('/alert/list', JSON.stringify({ }), function (result) {
     if (result && result.length > 0) {
       var rows = [
         ['Date Added'.bold, 'Name'.bold, 'Regex'.bold, 'Modifiers'.bold, 'Recipients'.bold, 'Enable'.bold]
@@ -191,7 +191,7 @@ function auth() {
       password: p.password
     });
 
-    logoRequest('/auth', postData, function (result) {
+    request('/auth', postData, function (result) {
       if (result['result'] === 'force_password_change') {
         console.log('Password change required.');
         changePassword();
@@ -201,7 +201,7 @@ function auth() {
 }
 
 function logout(args) {
-  logoRequest('/logout', JSON.stringify({}));
+  request('/logout', JSON.stringify({}));
 }
 
 function search(args) {
@@ -218,7 +218,7 @@ function search(args) {
       }
     }
 
-    logoRequest('/search?' + querystring.stringify(qs), JSON.stringify({}), function (result) {
+    request('/search?' + querystring.stringify(qs), JSON.stringify({}), function (result) {
       for (var index in result) {
         var r = result[index];
         if (r['message']) {
@@ -252,9 +252,9 @@ function withToken(callback) {
   }
 }
 
-function logoRequest(path, postData, callback) {
+function request(path, postData, callback) {
   withToken(function (token) {
-    var req = request({
+    var options = {
       host: DEFAULT_LOG_SERVER,
       port: DEFAULT_LOG_SERVER_PORT,
       path: path,
@@ -264,42 +264,32 @@ function logoRequest(path, postData, callback) {
         'Content-Length': postData.length,
         'Cookie': 'auth=' + token
       }
-    }, function (result) {
-      if (!callback) {
-        console.log(result['result']);
-      } else {
-        callback(result);
-      }
+    };
+
+    var response = '';
+    var req = http.request(options, function (res) {
+      if (res.headers['set-cookie']) saveToken(res.headers['set-cookie'].toString().split(/auth=(.*?);.*/)[1]);
+      res.setEncoding('utf8');
+      res.on('data', function (chunk) {
+        response += chunk;
+      });
+      res.on('end', function () {
+        var result = JSON.parse(response);
+        if (!callback) {
+          console.log(result['result']);
+        } else {
+          callback(result);
+        }
+        if (res.statusCode != 200) {
+          console.log(res.statusCode);
+          process.exit(1);
+        }
+      });
+    });
+    req.on('error', function (e) {
+      console.log('Err ', e);
     });
     req.write(postData);
     req.end();
   });
-}
-
-function request(options, callback) {
-  var response = '';
-  var req = http.request(options, function (res) {
-    if (res.headers['set-cookie']) saveToken(res.headers['set-cookie'].toString().split(/auth=(.*?);.*/)[1]);
-    res.setEncoding('utf8');
-    res.on('data', function (chunk) {
-      response += chunk;
-    });
-    res.on('end', function () {
-      var result = JSON.parse(response);
-      if (!callback) {
-        console.log(result['result']);
-      } else {
-        callback(result);
-      }
-      if (res.statusCode != 200) {
-        console.log(res.statusCode);
-        process.exit(1);
-      }
-    });
-  });
-  req.on('error', function (e) {
-    console.log('Err ', e);
-  });
-
-  return req;
 }
