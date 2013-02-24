@@ -81,6 +81,9 @@ switch (process.argv[3]) {
   case 'alertlist':
     alertList();
     break;
+  case 'alertedit':
+    alertEdit();
+    break;
   case 'help':
     showHelp();
     break;
@@ -163,18 +166,61 @@ function alertAdd() {
   });
 }
 
-function alertList() {
+function alertList(callback) {
   request('/alert/list', JSON.stringify({ }), function (result) {
+    var alerts = [];
     if (result && result.length > 0) {
       var rows = [
-        ['Date Added'.bold, 'Name'.bold, 'Regex'.bold, 'Modifiers'.bold, 'Recipients'.bold, 'Enable'.bold]
+        ['Name'.bold, 'Date Added'.bold, 'Regex'.bold, 'Modifiers'.bold, 'Recipients'.bold, 'Enable'.bold]
       ];
       for (var index in result) {
         var r = result[index];
-        rows.push([moment(r['dateAdded']).format('MMM D YYYY, HH:mm:ss'), r['name'], r['regex'], r['modifiers'], r['recipients'], r['enable'] == true ? 'true'.green : 'false'.red]);
+        rows.push([r['name'], moment(r['dateAdded']).format('MMM D YYYY, HH:mm:ss'), r['regex'], r['modifiers'], r['recipients'], r['enable'] == true ? 'true'.green : 'false'.red]);
+        alerts[r['name']] = r;
       }
       util.puts(cliff.stringifyRows(rows));
+      if (callback) callback(alerts);
     }
+  });
+}
+
+function alertEdit() {
+  alertList(function (alerts) {
+    ALERT_NAME_SCHEMA.conform = function (value) {
+      return value in alerts;
+    };
+    ALERT_NAME_SCHEMA.message = util.format('Valid options: %s', Object.keys(alerts));
+    prompt.start();
+    prompt.get({
+      properties: {
+        name: ALERT_NAME_SCHEMA
+      }
+    }, function (err, p) {
+      var alert = alerts[p.name];
+      ALERT_NAME_SCHEMA.default = alert.name;
+      REGEX_SCHEMA.default = alert.regex;
+      REGEX_MODIFIERS_SCHEMA.default = alert.modifiers;
+      EMAIL_LIST_SCHEMA.default = alert.recipients;
+      REGEX_ENABLE_SCHEMA.default = alert.enable;
+      prompt.get({
+        properties: {
+          name: ALERT_NAME_SCHEMA,
+          regex: REGEX_SCHEMA,
+          modifiers: REGEX_MODIFIERS_SCHEMA,
+          recipients: EMAIL_LIST_SCHEMA,
+          enable: REGEX_ENABLE_SCHEMA
+        }
+      }, function (err, p) {
+        var postData = JSON.stringify({
+          name: p.name,
+          regex: p.regex,
+          modifiers: p.modifiers,
+          recipients: p.recipients,
+          enable: p.enable
+        });
+        request('/alert/edit', postData);
+      });
+    });
   });
 }
 
@@ -193,7 +239,7 @@ function auth() {
 
     request('/auth', postData, function (result) {
       if (result['result'] === 'force_password_change') {
-        console.log('Password change required.');
+        util.puts('Password change required.');
         changePassword();
       }
     });
@@ -222,9 +268,9 @@ function search(args) {
       for (var index in result) {
         var r = result[index];
         if (r['message']) {
-          console.log('[' + moment(r['time']).format('MMM D YYYY, HH:mm:ss') + ' ' + r['facility'] + ' ' + r['severity'] + ']\t' + r['host'] + '   ' + r['message']);
+          util.puts('[' + moment(r['time']).format('MMM D YYYY, HH:mm:ss') + ' ' + r['facility'] + ' ' + r['severity'] + ']\t' + r['host'] + '   ' + r['message']);
         } else {
-          console.log(r);
+          util.puts(r);
         }
       }
     });
@@ -232,7 +278,7 @@ function search(args) {
 }
 
 function showHelp() {
-  console.log('node client.js <host(string)> <action({auth|useradd|userlist|reset|passwd|logout|alertadd|alertlist|help|search})> [<args(string)>]');
+  util.puts('node client.js <host(string)> <action({auth|useradd|userlist|reset|passwd|logout|alertadd|alertlist|help|search})> [<args(string)>]');
 }
 
 function saveToken(token) {
@@ -276,12 +322,12 @@ function request(path, postData, callback) {
       res.on('end', function () {
         var result = JSON.parse(response);
         if (!callback) {
-          console.log(result['result']);
+          util.puts(result['result']);
         } else {
           callback(result);
         }
         if (res.statusCode != 200) {
-          console.log(res.statusCode);
+          util.puts(res.statusCode);
           process.exit(1);
         }
       });

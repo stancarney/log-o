@@ -45,6 +45,9 @@ var server = http.createServer(function (req, res) {
     case '/alert/list':
       alert.list(req, res);
       break;
+    case '/alert/edit':
+      alert.edit(req, res);
+      break;
     case '/search':
       search(req, res, urlParts);
       break;
@@ -74,7 +77,7 @@ server.on('close', function () {
 function search(req, res, urlParts) {
   utils.isAuth(req, res, function (user) {
     var qs = urlParts.query || '';
-    syslog.sendMessage(user.email + ' viewed the logs with: ' + util.inspect(qs).replace(/(\r\n|\n|\r)/gm,""));
+    syslog.sendMessage(user.email + ' viewed the logs with: ' + util.inspect(qs).replace(/(\r\n|\n|\r)/gm, ""));
     db.getMessages(qs, function (messages) {
       res.writeHead(200, {'Content-Type': 'application/json'});
       if (messages) {
