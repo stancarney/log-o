@@ -1,4 +1,4 @@
-var config = require('./config.js')
+var config = require('../config.js')
     , moment = require('moment')
     , server = require('emailjs').server.connect(
         {

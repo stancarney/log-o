@@ -1,10 +1,10 @@
-var config = require('./config.js');
+var config = require('../config.js');
 
 if (config.get('tcp')) {
   var net = require('net')
       , os = require('os')
       , server = net.createServer(config.get('tcp_port'))
-      , syslog = require('./syslog.js');
+      , services = require('./');
 
   var terminator = '\n';
 
@@ -17,7 +17,7 @@ if (config.get('tcp')) {
         var msgs = buffer.split(terminator);
         for (var i = 0; i < msgs.length - 1; ++i) {
           var msg = msgs[i];
-          if (msg != '\n') syslog.save(msg);
+          if (msg != '\n') services.syslog.save(msg);
         }
         buffer = msgs[msgs.length - 1];
       }
@@ -28,7 +28,7 @@ if (config.get('tcp')) {
       var msgs = buffer.split(terminator);
       for (var i = 0; i < msgs.length - 1; ++i) {
         var msg = msgs[i];
-        if (msg) syslog.save(msg);
+        if (msg) services.syslog.save(msg);
       }
     });
   });
@@ -36,7 +36,7 @@ if (config.get('tcp')) {
   server.on('listening', function () {
     var address = server.address();
     var msg = 'TCP Server started on ' + os.hostname() + ' (' + address.address + ':' + address.port + ')';
-    syslog.sendMessage(msg);
+    services.syslog.sendMessage(msg);
   });
 
   server.listen(config.get('tcp_port'));

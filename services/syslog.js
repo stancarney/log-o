@@ -1,6 +1,6 @@
-var config = require('./config.js')
-    , db = require('./db.js')
-    , alert = require('./alert.js')
+var config = require('../config.js')
+    , db = require('../db.js')
+    , controllers = require('../controllers')
     , syslogParser = require('glossy').Parse
     , syslogProducer = require('glossy').Produce
     , glossy = new syslogProducer()
@@ -9,7 +9,7 @@ var config = require('./config.js')
     , dgram = require('dgram')
     , net = require('net')
     , microtime = require('microtime')
-    , preprocessors = require('./preprocessors.js');
+    , services = require('./');
 
 exports.save = function (rawMessage) {
   var now = microtime.now();
@@ -24,9 +24,9 @@ exports.save = function (rawMessage) {
         console.log('Message could not be parsed: ' + parsedMessage['originalMessage']);
       }
 
-      for (var i in preprocessors.moduleHolder) {
+      for (var i in services.preprocessors.moduleHolder) {
         try {
-          parsedMessage = preprocessors.moduleHolder[i](parsedMessage);
+          parsedMessage = services.preprocessors.moduleHolder[i](parsedMessage);
         } catch (e) {
           console.log('Preprocessor threw an exception. [' + preprocessors.moduleHolder[i] + '] ', e);
         }
@@ -38,7 +38,7 @@ exports.save = function (rawMessage) {
 
       db.saveMessage(parsedMessage, function (message) {
         if (message) {
-          alert.check(parsedMessage);
+          controllers.alert.check(parsedMessage);
         } else {
           console.log('Message was not saved.');
         }

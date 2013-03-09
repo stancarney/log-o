@@ -1,6 +1,6 @@
 var Cookies = require('cookies')
-    , db = require('./db.js')
-    , syslog = require('./syslog.js')
+    , db = require('../db.js')
+    , services = require('./')
     , url = require('url')
     , crypto = require('crypto');
 
@@ -9,14 +9,14 @@ function isAuth(req, res, callback) {
   var token = cookies.get('auth');
 
   if (!token) {
-    syslog.sendMessage('Expired or invalid token used. IP: ' + req.connection.remoteAddress);
+    services.syslog.sendMessage('Expired or invalid token used. IP: ' + req.connection.remoteAddress);
     writeResponseMessage(res, 401, 'auth_failed');
   } else {
     db.getUserByToken(token, function (user) {
       if (user) {
         var urlParts = url.parse(req.url, true);
         if (user.forcePasswordChange && urlParts.pathname != '/user/password') {
-          syslog.sendMessage('User must change password: ' + user.email + ' IP: ' + req.connection.remoteAddress);
+          services.syslog.sendMessage('User must change password: ' + user.email + ' IP: ' + req.connection.remoteAddress);
           writeResponseMessage(res, 200, 'force_password_change2');
         } else {
           setAuthToken(req, res, user);
@@ -25,7 +25,7 @@ function isAuth(req, res, callback) {
           });
         }
       } else {
-        syslog.sendMessage('Expired or invalid token used. IP: ' + req.connection.remoteAddress);
+        services.syslog.sendMessage('Expired or invalid token used. IP: ' + req.connection.remoteAddress);
         writeResponseMessage(res, 401, 'auth_failed');
       }
     });

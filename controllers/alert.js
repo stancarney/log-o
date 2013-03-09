@@ -1,11 +1,11 @@
-var config = require('./config.js')
-    , db = require('./db.js')
+var config = require('../config.js')
+    , db = require('../db.js')
     , email = require('./email.js')
-    , utils = require('./utils.js');
+    , services = require('../services');
 
 module.exports.add = function (req, res) {
-  utils.parsePost(req, res, function () {
-    utils.isAuth(req, res, function (user) {
+  services.utils.parsePost(req, res, function () {
+    services.utils.isAuth(req, res, function (user) {
       //TODO: check perms
       var alertParams = {name: res.post['name'], regex: res.post['regex'], modifiers: res.post['modifiers'], recipients: res.post['recipients'].replace(/\s/g, '').split(','), enable: !!(res.post['enable'] === 'true'), dateAdded: new Date()};
       if (alertParams.modifiers) {
@@ -14,12 +14,12 @@ module.exports.add = function (req, res) {
 
       db.getAlertByName(alertParams.name, function (alert) {
         if (alert) {
-          utils.writeResponseMessage(res, 400, 'alert_already_exists');
+          services.utils.writeResponseMessage(res, 400, 'alert_already_exists');
           return;
         }
 
         db.saveAlert(alertParams, function (alert) {
-          utils.writeResponseMessage(res, 200, 'success');
+          services.utils.writeResponseMessage(res, 200, 'success');
         });
       });
     });
@@ -27,8 +27,8 @@ module.exports.add = function (req, res) {
 };
 
 module.exports.edit = function (req, res) {
-  utils.parsePost(req, res, function () {
-    utils.isAuth(req, res, function (user) {
+  services.utils.parsePost(req, res, function () {
+    services.utils.isAuth(req, res, function (user) {
       //TODO: check perms
       var alertParams = {name: res.post['name'], regex: res.post['regex'], modifiers: res.post['modifiers'], recipients: res.post['recipients'].replace(/\s/g, '').split(','), enable: !!(res.post['enable'] === 'true'), dateAdded: new Date()};
       if (alertParams.modifiers) {
@@ -37,7 +37,7 @@ module.exports.edit = function (req, res) {
 
       db.getAlertByName(alertParams.name, function (alert) {
         if (!alert) {
-          utils.writeResponseMessage(res, 404, 'alert_does_not_exist');
+          services.utils.writeResponseMessage(res, 404, 'alert_does_not_exist');
           return;
         }
 
@@ -45,7 +45,7 @@ module.exports.edit = function (req, res) {
           alert[key] = alertParams[key];
         }
         db.saveAlert(alert, function (alert) {
-          utils.writeResponseMessage(res, 200, 'success');
+          services.utils.writeResponseMessage(res, 200, 'success');
         });
       });
     });
@@ -53,7 +53,7 @@ module.exports.edit = function (req, res) {
 };
 
 module.exports.list = function list(req, res) {
-  utils.isAuth(req, res, function (user) {
+  services.utils.isAuth(req, res, function (user) {
     db.getAlerts(function (alerts) {
       res.writeHead(200, {'Content-Type': 'application/json'});
       res.write(JSON.stringify(alerts));
@@ -62,6 +62,7 @@ module.exports.list = function list(req, res) {
   });
 };
 
+//TODO: Not really a controller. More like a service.
 exports.check = function (parsedMessage) {
   db.getActiveAlerts(function (alerts) {
     for (var alert in alerts) {
