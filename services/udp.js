@@ -1,10 +1,10 @@
-var config = require('../config.js');
+var dgram = require('dgram')
+    , os = require('os')
+    , config = require('../config.js')
+    , services = require('./');
 
-if (config.get('udp')) {
-  var dgram = require('dgram')
-      , os = require('os')
-      , server = dgram.createSocket('udp4')
-      , services = require('./');
+module.exports.start = function () {
+  var server = dgram.createSocket('udp4');
 
   server.on('message', function (data) {
     services.syslog.save(data.toString());
@@ -17,4 +17,4 @@ if (config.get('udp')) {
   });
 
   server.bind(config.get('udp_port'));
-}
+};

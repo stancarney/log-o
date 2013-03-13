@@ -1,6 +1,7 @@
 var config = require('../config.js')
     , db = require('../db.js')
     , controllers = require('../controllers')
+    , services = require('./')
     , syslogParser = require('glossy').Parse
     , syslogProducer = require('glossy').Produce
     , glossy = new syslogProducer()
@@ -8,8 +9,7 @@ var config = require('../config.js')
     , crypto = require('crypto')
     , dgram = require('dgram')
     , net = require('net')
-    , microtime = require('microtime')
-    , services = require('./');
+    , microtime = require('microtime');
 
 exports.save = function (rawMessage) {
   var now = microtime.now();
@@ -61,14 +61,15 @@ exports.sendMessage = function (message) {
   });
   bmsg = new Buffer(msg);
 
+  var client;
   if (config.get('tcp')) {
-    var client = new net.Socket();
+    client = new net.Socket();
     client.connect(config.get('tcp_port'), '0.0.0.0', function () {
       client.write(msg);
       client.destroy();
     });
   } else {
-    var client = dgram.createSocket('udp4');
+    client = dgram.createSocket('udp4');
     client.send(bmsg, 0, bmsg.length, 5140, '0.0.0.0', function (err, bytes) {
       if (err) console.log('Could not log message: ' + err);
       client.close();

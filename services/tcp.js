@@ -1,12 +1,12 @@
-var config = require('../config.js');
+var net = require('net')
+    , os = require('os')
+    , config = require('../config.js')
+    , services = require('./');
 
-if (config.get('tcp')) {
-  var net = require('net')
-      , os = require('os')
-      , server = net.createServer(config.get('tcp_port'))
-      , services = require('./');
+var terminator = '\n';
 
-  var terminator = '\n';
+module.exports.start = function () {
+  var server = net.createServer(config.get('tcp_port'));
 
   server.on('connection', function (sock) {
     var buffer = '';
@@ -40,4 +40,4 @@ if (config.get('tcp')) {
   });
 
   server.listen(config.get('tcp_port'));
-}
+};
