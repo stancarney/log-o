@@ -3,3 +3,4 @@ exports.syslog = require("./syslog.js");
 exports.tcp = require("./tcp.js");
 exports.udp = require("./udp.js");
 exports.utils = require("./utils.js");
+exports.logo = require("./log-o.js");

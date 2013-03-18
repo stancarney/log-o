@@ -20,6 +20,11 @@
     "bcrypt": "*",
     "cliff": "*"
   },
+  "devDependencies": {
+    "mocha": "*",
+    "supertest": "*",
+    "nodemon": "*"
+  },
   "license": "GPLv3",
   "engine": {
     "node": ">= 0.8.0"

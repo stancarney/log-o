@@ -80,18 +80,6 @@ module.exports.getUserByEmail = function (email, callback) {
   });
 };
 
-module.exports.getUserByEmailAndPassword = function (email, password, callback) {
-
-  if (!password) {
-    return null;
-  }
-
-  var hashedPassword = crypto.createHash('sha1').update(password).digest('hex');
-  findOneDocument('users', {email: email, password: hashedPassword}, function (user) {
-    callback(user);
-  });
-};
-
 /******************************************************************
  *
  * Message Functions.
