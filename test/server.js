@@ -8,6 +8,7 @@ describe('Server', function () {
   process.env['db_init'] = './db/test_impl.js'; //referenced from project root
   var server = require('../server');
   var token = '';
+  var alert = {name: 'myregex', regex: '.*', modifiers: 'gim', recipients: 'alert@example.com', enable: true};
 
   beforeEach(function (done) {
     request(server)
@@ -30,7 +31,7 @@ describe('Server', function () {
     done();
   });
 
-  describe('#auth()', function () {
+  describe('/auth', function () {
     it('should return 401 with invalid email', function (done) {
       request(server)
           .post('/auth')
@@ -54,7 +55,7 @@ describe('Server', function () {
     });
   });
 
-  describe('#logout()', function () {
+  describe('/logout', function () {
     it('should return 200 with succes', function (done) {
       request(server)
           .post('/logout')
@@ -63,7 +64,7 @@ describe('Server', function () {
     });
   });
 
-  describe('#add()', function () {
+  describe('/user/add', function () {
     it('should return 401 with invalid token', function (done) {
       request(server)
           .post('/user/add')
@@ -87,7 +88,7 @@ describe('Server', function () {
     });
   });
 
-  describe('#list()', function () {
+  describe('/user/list', function () {
     it('should return 401 with invalid token', function (done) {
       request(server)
           .post('/user/list')
@@ -107,7 +108,7 @@ describe('Server', function () {
     });
   });
 
-  describe('#reset()', function () {
+  describe('/user/reset', function () {
     it('should return 401 with invalid token', function (done) {
       request(server)
           .post('/user/reset')
@@ -133,7 +134,7 @@ describe('Server', function () {
     });
   });
 
-  describe('#password()', function () {
+  describe('/user/password', function () {
     it('should return 401 with invalid token', function (done) {
       request(server)
           .post('/user/password')
@@ -156,6 +157,85 @@ describe('Server', function () {
           .send(JSON.stringify({}))
           .expect('Content-Type', /json/)
           .expect(400, '{"result":"password_required"}', done);
+    });
+  });
+
+  describe('/alert/add', function () {
+    it('should return 401 with invalid token', function (done) {
+      request(server)
+          .post('/alert/add')
+          .set('Cookie', 'auth=123')
+          .send(JSON.stringify({name: 'myregex', regex: '.*', modifiers: 'gim', recipients: 'alert@example.com', enable: true}))
+          .expect(401, '{"result":"unauthorized"}', done);
+    });
+    it('should return 200 on success', function (done) {
+      request(server)
+          .post('/alert/add')
+          .set('Cookie', 'auth=' + token)
+          .send(JSON.stringify({name: 'myregex', regex: '.*', modifiers: 'gim', recipients: 'alert@example.com', enable: true}))
+          .expect('Content-Type', /json/)
+          .expect(200, '{"result":"success"}', done);
+    });
+    it('should return 400 on already exists', function (done) {
+      request(server)
+          .post('/alert/add')
+          .set('Cookie', 'auth=' + token)
+          .send(JSON.stringify(alert))
+          .expect('Content-Type', /json/)
+          .expect(200, '{"result":"success"}')
+          .end(function (err, res) {
+            if (err) throw err;
+            request(server)
+                .post('/alert/add')
+                .set('Cookie', 'auth=' + token)
+                .send(JSON.stringify(alert))
+                .expect('Content-Type', /json/)
+                .expect(400, '{"result":"alert_already_exists"}', done);
+          });
+    });
+  });
+
+  describe('/alert/list', function () {
+    it('should return 401 with invalid token', function (done) {
+      request(server)
+          .post('/alert/list')
+          .set('Cookie', 'auth=123')
+          .expect(401, '{"result":"unauthorized"}', done);
+    });
+    it('should return 200 on success', function (done) {
+      test_impl.saveAlert(alert);
+      request(server)
+          .post('/alert/list')
+          .set('Cookie', 'auth=' + token)
+          .expect('Content-Type', /json/)
+          .expect(200, '[{"name":"myregex","regex":".*","modifiers":"gim","recipients":"alert@example.com","enable":true}]', done);
+    });
+  });
+
+  describe('/alert/edit', function () {
+    it('should return 401 with invalid token', function (done) {
+      request(server)
+          .post('/alert/edit')
+          .set('Cookie', 'auth=123')
+          .send(JSON.stringify(alert))
+          .expect(401, '{"result":"unauthorized"}', done);
+    });
+    it('should return 200 on success', function (done) {
+      test_impl.saveAlert(alert);
+      request(server)
+          .post('/alert/edit')
+          .set('Cookie', 'auth=' + token)
+          .send(JSON.stringify(alert))
+          .expect('Content-Type', /json/)
+          .expect(200, '{"result":"success"}', done);
+    });
+    it('should return 400 on doesn\'t exist', function (done) {
+      request(server)
+          .post('/alert/edit')
+          .set('Cookie', 'auth=' + token)
+          .send(JSON.stringify({name: 'non-existent', regex: '.*', modifiers: 'gim', recipients: 'alert@example.com', enable: true}))
+          .expect('Content-Type', /json/)
+          .expect(404, '{"result":"alert_does_not_exist"}', done);
     });
   });
 });

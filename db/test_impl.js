@@ -2,7 +2,9 @@ var bcrypt = require('bcrypt');
 /******************************************************************
  * This is a data store implementation used for testing. It can
  * also be used as a blueprint to build alternate data store
- * implementations.
+ * implementations with the following exceptions:
+ *
+ * - In all cases (when in function parameters) callback is required.
  ******************************************************************/
 
 /******************************************************************
@@ -85,7 +87,7 @@ function getMessages(queryString, callback) {
 
 function saveAlert(alert, callback) {
   alertsByName[alert.name] = alert;
-  callback(alert);
+  if (callback) callback(alert);
 }
 
 function getAlerts(callback) {
@@ -107,7 +109,7 @@ function getActiveAlerts(callback) {
 }
 
 function getAlertByName(name, callback) {
-  callback(alertsByName[names]);
+  callback(alertsByName[name]);
 }
 
 /******************************************************************
