@@ -10,7 +10,7 @@ function isAuth(req, res, callback) {
 
   if (!token) {
     services.syslog.sendMessage('Expired or invalid token used. IP: ' + req.connection.remoteAddress);
-    writeResponseMessage(res, 401, 'auth_failed');
+    writeResponseMessage(res, 401, 'unauthorized');
   } else {
     db.getUserByToken(token, function (user) {
       if (user) {
@@ -26,7 +26,7 @@ function isAuth(req, res, callback) {
         }
       } else {
         services.syslog.sendMessage('Expired or invalid token used. IP: ' + req.connection.remoteAddress);
-        writeResponseMessage(res, 401, 'auth_failed');
+        writeResponseMessage(res, 401, 'unauthorized');
       }
     });
   }

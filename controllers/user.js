@@ -11,7 +11,7 @@ module.exports.auth = function (req, res) {
 
       if (!user) {
         services.syslog.sendMessage('Failed Login. No User Found: ' + res.post['email'] + ' IP: ' + req.connection.remoteAddress);
-        services.utils.writeResponseMessage(res, 401, 'auth_failed');
+        services.utils.writeResponseMessage(res, 401, 'unauthorized');
         return;
       }
 
@@ -19,7 +19,7 @@ module.exports.auth = function (req, res) {
 
         if (!result) {
           services.syslog.sendMessage('Failed Login. Invalid Password: ' + res.post['email'] + ' IP: ' + req.connection.remoteAddress);
-          services.utils.writeResponseMessage(res, 401, 'auth_failed');
+          services.utils.writeResponseMessage(res, 401, 'unauthorized');
           return;
         }
 

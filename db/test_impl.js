@@ -1,22 +1,36 @@
-console.log('Using TEST DB.');
+var bcrypt = require('bcrypt');
+/******************************************************************
+ * This is a data store implementation used for testing. It can
+ * also be used as a blueprint to build alternate data store
+ * implementations.
+ ******************************************************************/
 
 /******************************************************************
  *
- * Test Functions.
+ * Test Functions. (Not required for new data store implementations)
  *
  ******************************************************************/
 
-var usersByEmail = {};
-var usersByToken = {};
-var messages = [];
-var alertsByName = {};
+console.log('Using TEST DB.');
 
-addUser({email: 'admin', password: '$2a$10$NGZCj2oAbULoNtlG6n270es8X1.m2MzJchJiPiNooFX9qXM3U4Ss2'}); //password: admin
-addUser({email: 'logo@example.com', password: '$2a$10$r3akC6vK4D7VtbWEUmpoMeC2tOHA5SaCPeBcPOknrDN5BgmlhYBHm'}); //password: password
+var usersByEmail;
+var usersByToken;
+var alertsByName;
+var messages;
 
-function addUser(user) {
-  usersByEmail[user.email] = user;
-  usersByToken[user.token] = user;
+var bcrypt_admin = bcrypt.hashSync('admin', bcrypt.genSaltSync(10));
+var bcrypt_password = bcrypt.hashSync('password', bcrypt.genSaltSync(10));
+
+reset();
+
+function reset() {
+  usersByEmail = {};
+  usersByToken = {};
+  alertsByName = {};
+  messages = [];
+
+  saveUser({email: 'admin', password: bcrypt_admin});
+  saveUser({email: 'logo@example.com', password: bcrypt_password});
 }
 
 
@@ -27,8 +41,9 @@ function addUser(user) {
  ******************************************************************/
 
 function saveUser(user, callback) {
-  addUser(user);
-  callback(user);
+  usersByEmail[user.email] = user;
+  usersByToken[user.token] = user;
+  if (callback) callback(user);
 }
 
 function getUsers(callback) {
@@ -119,5 +134,8 @@ module.exports = {
   getAlerts: getAlerts,
   getActiveAlerts: getActiveAlerts,
   getAlertByName: getAlertByName,
-  isAvailable: isAvailable
+  isAvailable: isAvailable,
+
+  //test functions
+  reset: reset
 };
