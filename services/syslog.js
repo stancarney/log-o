@@ -1,6 +1,6 @@
 var config = require('../config.js')
     , db = require('../db.js')
-    , controllers = require('../controllers')
+    , routes = require('../routes')
     , services = require('./')
     , syslogParser = require('glossy').Parse
     , syslogProducer = require('glossy').Produce
@@ -38,7 +38,7 @@ exports.save = function (rawMessage) {
 
       db.saveMessage(parsedMessage, function (message) {
         if (message) {
-          controllers.alert.check(parsedMessage);
+          routes.alert.check(parsedMessage);
         } else {
           console.log('Message was not saved.');
         }

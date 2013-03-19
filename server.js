@@ -1,7 +1,7 @@
 var db = require('./db.js')
     , logo = require('./services/log-o.js')
     , services = require('./services')
-    , controllers = require('./controllers')
+    , routes = require('./routes')
     , config = require('./config.js')
     , http = require('http')
     , url = require('url')
@@ -21,7 +21,7 @@ server.on('listening', function () {
        * email: admin
        * password: admin
        */
-      controllers.user.addAdmin();
+      routes.user.addAdmin();
 
       var address = server.address() || {address: 'NO ADDRESS', port: 'NO PORT'};
       var msg = 'HTTP Server started on ' + os.hostname() + ' (' + address.address + ':' + address.port + ')';
@@ -45,31 +45,31 @@ server.on('request', function (req, res) {
 
   switch (urlParts.pathname) {
     case '/auth':
-      controllers.user.auth(req, res);
+      routes.user.auth(req, res);
       break;
     case '/user/add':
-      controllers.user.add(req, res);
+      routes.user.add(req, res);
       break;
     case '/user/list':
-      controllers.user.list(req, res);
+      routes.user.list(req, res);
       break;
     case '/user/reset':
-      controllers.user.reset(req, res);
+      routes.user.reset(req, res);
       break;
     case '/user/password':
-      controllers.user.changePassword(req, res);
+      routes.user.changePassword(req, res);
       break;
     case '/logout':
-      controllers.user.logout(req, res);
+      routes.user.logout(req, res);
       break;
     case '/alert/add':
-      controllers.alert.add(req, res);
+      routes.alert.add(req, res);
       break;
     case '/alert/list':
-      controllers.alert.list(req, res);
+      routes.alert.list(req, res);
       break;
     case '/alert/edit':
-      controllers.alert.edit(req, res);
+      routes.alert.edit(req, res);
       break;
     case '/search':
       services.logo.search(req, res, urlParts);
