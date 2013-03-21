@@ -53,6 +53,9 @@ server.on('request', function (req, res) {
     case '/user/list':
       routes.user.list(req, res);
       break;
+    case '/user/edit':
+      routes.user.edit(req, res);
+      break;
     case '/user/reset':
       routes.user.reset(req, res);
       break;

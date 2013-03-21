@@ -108,6 +108,30 @@ describe('Server', function () {
     });
   });
 
+  describe('/user/edit', function () {
+    it('should return 401 with invalid token', function (done) {
+      request(server)
+          .post('/user/edit')
+          .set('Cookie', 'auth=123')
+          .send(JSON.stringify({email: 'logo@example.com', active: true}))
+          .expect(401, '{"result":"unauthorized"}', done);
+    });
+    it('should return 200 on success', function (done) {
+      request(server)
+          .post('/user/edit')
+          .set('Cookie', 'auth=' + token)
+          .send(JSON.stringify({email: 'logo@example.com', active: false}))
+          .expect(200, '{"result":"success"}', done);
+    });
+    it('should return 200 on success', function (done) {
+      request(server)
+          .post('/user/edit')
+          .set('Cookie', 'auth=' + token)
+          .send(JSON.stringify({email: 'logo@example.com', active: false}))
+          .expect(200, '{"result":"success"}', done);
+    });
+  });
+
   describe('/user/reset', function () {
     it('should return 401 with invalid token', function (done) {
       request(server)

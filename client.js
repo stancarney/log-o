@@ -25,7 +25,8 @@ var ALERT_NAME_SCHEMA = {
 var REGEX_SCHEMA = {
   required: true,
   before: function (value) {
-    return value.test(' ');
+    new RegExp(value); //compile regex to see if it is valid.
+    return value
   }
 };
 
@@ -37,7 +38,7 @@ var REGEX_MODIFIERS_SCHEMA = {
   }
 };
 
-var REGEX_ENABLE_SCHEMA = {
+var ACTIVE_SCHEMA = {
   pattern: /^true$|false$/,
   required: false
 };
@@ -65,6 +66,9 @@ switch (process.argv[3]) {
     break;
   case 'userlist':
     userList();
+    break;
+  case 'useredit':
+    userEdit();
     break;
   case 'reset':
     userReset();
@@ -101,19 +105,53 @@ function userAdd() {
   });
 }
 
-function userList() {
+function userList(callback) {
   var postData = JSON.stringify({ });
   request('/user/list', postData, function (result) {
+    var users = [];
     if (result && result.length > 0) {
       var rows = [
-        ['Last Access'.bold, 'Email'.bold]
+        ['Email'.bold, 'Active'.bold, 'Last Access'.bold]
       ];
       for (var index in result) {
         var r = result[index];
-        rows.push([moment(r['lastAccess']).format('MMM D YYYY, HH:mm:ss'), r['email']]);
+        rows.push([r['email'], r['active'], moment(r['lastAccess']).format('MMM D YYYY, HH:mm:ss')]);
+        users[r['email']] = r;
       }
       util.puts(cliff.stringifyRows(rows));
+      if (callback) callback(users);
     }
+  });
+}
+
+function userEdit() {
+  userList(function (users) {
+    EMAIL_SCHEMA.conform = function (value) {
+      return value in users;
+    };
+    EMAIL_SCHEMA.message = util.format('Valid options: %s', Object.keys(users));
+    prompt.start();
+    prompt.get({
+      properties: {
+        email: EMAIL_SCHEMA
+      }
+    }, function (err, p) {
+      var user = users[p.email];
+      EMAIL_SCHEMA.default = user.email;
+      ACTIVE_SCHEMA.default = user.active;
+      prompt.get({
+        properties: {
+          email: EMAIL_SCHEMA,
+          active: ACTIVE_SCHEMA
+        }
+      }, function (err, p) {
+        var postData = JSON.stringify({
+          email: p.email,
+          active: p.active
+        });
+        request('/user/edit', postData);
+      });
+    });
   });
 }
 
@@ -152,7 +190,7 @@ function alertAdd() {
       regex: REGEX_SCHEMA,
       modifiers: REGEX_MODIFIERS_SCHEMA,
       recipients: EMAIL_LIST_SCHEMA,
-      enable: REGEX_ENABLE_SCHEMA
+      active: ACTIVE_SCHEMA
     }
   }, function (err, p) {
     var postData = JSON.stringify({
@@ -160,7 +198,7 @@ function alertAdd() {
       regex: p.regex,
       modifiers: p.modifiers,
       recipients: p.recipients,
-      enable: p.enable
+      active: p.active
     });
     request('/alert/add', postData);
   });
@@ -171,11 +209,11 @@ function alertList(callback) {
     var alerts = [];
     if (result && result.length > 0) {
       var rows = [
-        ['Name'.bold, 'Date Added'.bold, 'Regex'.bold, 'Modifiers'.bold, 'Recipients'.bold, 'Enable'.bold]
+        ['Name'.bold, 'Date Added'.bold, 'Regex'.bold, 'Modifiers'.bold, 'Recipients'.bold, 'Active'.bold]
       ];
       for (var index in result) {
         var r = result[index];
-        rows.push([r['name'], moment(r['dateAdded']).format('MMM D YYYY, HH:mm:ss'), r['regex'], r['modifiers'], r['recipients'], r['enable'] == true ? 'true'.green : 'false'.red]);
+        rows.push([r['name'], moment(r['dateAdded']).format('MMM D YYYY, HH:mm:ss'), r['regex'], r['modifiers'], r['recipients'], r['active'] == true ? 'true'.green : 'false'.red]);
         alerts[r['name']] = r;
       }
       util.puts(cliff.stringifyRows(rows));
@@ -201,14 +239,14 @@ function alertEdit() {
       REGEX_SCHEMA.default = alert.regex;
       REGEX_MODIFIERS_SCHEMA.default = alert.modifiers;
       EMAIL_LIST_SCHEMA.default = alert.recipients;
-      REGEX_ENABLE_SCHEMA.default = alert.enable;
+      ACTIVE_SCHEMA.default = alert.active;
       prompt.get({
         properties: {
           name: ALERT_NAME_SCHEMA,
           regex: REGEX_SCHEMA,
           modifiers: REGEX_MODIFIERS_SCHEMA,
           recipients: EMAIL_LIST_SCHEMA,
-          enable: REGEX_ENABLE_SCHEMA
+          active: ACTIVE_SCHEMA
         }
       }, function (err, p) {
         var postData = JSON.stringify({
@@ -216,7 +254,7 @@ function alertEdit() {
           regex: p.regex,
           modifiers: p.modifiers,
           recipients: p.recipients,
-          enable: p.enable
+          active: p.active
         });
         request('/alert/edit', postData);
       });

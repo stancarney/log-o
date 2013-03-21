@@ -7,7 +7,7 @@ module.exports.add = function (req, res) {
   services.utils.parsePost(req, res, function () {
     services.utils.isAuth(req, res, function (user) {
       //TODO: check perms
-      var alertParams = {name: res.post['name'], regex: res.post['regex'], modifiers: res.post['modifiers'], recipients: res.post['recipients'].replace(/\s/g, '').split(','), enable: !!(res.post['enable'] === 'true'), dateAdded: new Date()};
+      var alertParams = {name: res.post['name'], regex: res.post['regex'], modifiers: res.post['modifiers'], recipients: res.post['recipients'].replace(/\s/g, '').split(','), active: !!(res.post['active'] === 'true'), dateAdded: new Date()};
       if (alertParams.modifiers) {
         alertParams.modifiers = alertParams.modifiers.split('').sort().join('');  //TODO: Verify on gim is passed in!
       }
@@ -26,11 +26,21 @@ module.exports.add = function (req, res) {
   });
 };
 
+module.exports.list = function list(req, res) {
+  services.utils.isAuth(req, res, function (user) {
+    db.getAlerts(function (alerts) {
+      res.writeHead(200, {'Content-Type': 'application/json'});
+      res.write(JSON.stringify(alerts));
+      res.end();
+    });
+  });
+};
+
 module.exports.edit = function (req, res) {
   services.utils.parsePost(req, res, function () {
     services.utils.isAuth(req, res, function (user) {
       //TODO: check perms
-      var alertParams = {name: res.post['name'], regex: res.post['regex'], modifiers: res.post['modifiers'], recipients: res.post['recipients'].replace(/\s/g, '').split(','), enable: !!(res.post['enable'] === 'true'), dateAdded: new Date()};
+      var alertParams = {name: res.post['name'], regex: res.post['regex'], modifiers: res.post['modifiers'], recipients: res.post['recipients'].replace(/\s/g, '').split(','), active: !!(res.post['active'] === 'true'), dateAdded: new Date()};
       if (alertParams.modifiers) {
         alertParams.modifiers = alertParams.modifiers.split('').sort().join('');  //TODO: Verify on gim is passed in!
       }
@@ -48,16 +58,6 @@ module.exports.edit = function (req, res) {
           services.utils.writeResponseMessage(res, 200, 'success');
         });
       });
-    });
-  });
-};
-
-module.exports.list = function list(req, res) {
-  services.utils.isAuth(req, res, function (user) {
-    db.getAlerts(function (alerts) {
-      res.writeHead(200, {'Content-Type': 'application/json'});
-      res.write(JSON.stringify(alerts));
-      res.end();
     });
   });
 };
