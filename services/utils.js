@@ -15,9 +15,12 @@ function isAuth(req, res, callback) {
     db.getUserByToken(token, function (user) {
       if (user) {
         var urlParts = url.parse(req.url, true);
-        if (user.forcePasswordChange && urlParts.pathname != '/user/password') {
-          services.syslog.sendMessage('User must change password: ' + user.email + ' IP: ' + req.connection.remoteAddress);
-          writeResponseMessage(res, 200, 'force_password_change2');
+        if (!user.active) {
+          services.syslog.sendMessage('Auth Failed (User Not Active): ' + user.email + ' IP: ' + req.connection.remoteAddress);
+          services.utils.writeResponseMessage(res, 401, 'unauthorized');
+        } else if (user.forcePasswordChange && urlParts.pathname != '/user/password') {
+          services.syslog.sendMessage('Auth (Change Password): ' + user.email + ' IP: ' + req.connection.remoteAddress);
+          writeResponseMessage(res, 200, 'force_password_change');
         } else {
           setAuthToken(req, res, user);
           db.saveUser(user, function (user) {
@@ -25,7 +28,7 @@ function isAuth(req, res, callback) {
           });
         }
       } else {
-        services.syslog.sendMessage('Expired or invalid token used. IP: ' + req.connection.remoteAddress);
+        services.syslog.sendMessage('Auth Failed (Expired or Invalid Token). IP: ' + req.connection.remoteAddress);
         writeResponseMessage(res, 401, 'unauthorized');
       }
     });

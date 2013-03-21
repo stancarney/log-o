@@ -31,8 +31,8 @@ function reset() {
   alertsByName = {};
   messages = [];
 
-  saveUser({email: 'admin', password: bcrypt_admin});
-  saveUser({email: 'logo@example.com', password: bcrypt_password});
+  saveUser({email: 'admin', password: bcrypt_admin, active: true});
+  saveUser({email: 'logo@example.com', password: bcrypt_password, active: true});
 }
 
 

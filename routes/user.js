@@ -15,6 +15,12 @@ module.exports.auth = function (req, res) {
         return;
       }
 
+      if (!user.active) {
+        services.syslog.sendMessage('Auth Failed (User Not Active): ' + user.email + ' IP: ' + req.connection.remoteAddress);
+        services.utils.writeResponseMessage(res, 401, 'unauthorized');
+        return;
+      }
+
       bcrypt.compare(res.post['password'], user.password, function (err, result) {
 
         if (!result) {

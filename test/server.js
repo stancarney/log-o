@@ -38,6 +38,15 @@ describe('Server', function () {
           .send(JSON.stringify({ email: 'nouser@example.com', password: 'password' }))
           .expect(401, '{"result":"unauthorized"}', done);
     });
+    it('should return 401 on not active', function (done) {
+      test_impl.getUserByEmail('logo@example.com', function (user) {
+        user.active = false;
+        request(server)
+            .post('/auth')
+            .send(JSON.stringify({ email: user.email, password: 'password' }))
+            .expect(401, '{"result":"unauthorized"}', done);
+      });
+    });
     it('should return 401 with invalid password', function (done) {
       request(server)
           .post('/auth')
@@ -46,10 +55,10 @@ describe('Server', function () {
     });
     it('should return 200 with force_password_change', function (done) {
       var bcrypt_password = bcrypt.hashSync('awesome', bcrypt.genSaltSync(10));
-      test_impl.saveUser({email: 'newuser@example.com', password: bcrypt_password, forcePasswordChange: true}, function (user) {
+      test_impl.saveUser({email: 'newuser@example.com', password: bcrypt_password, active: true, forcePasswordChange: true}, function (user) {
         request(server)
             .post('/auth')
-            .send(JSON.stringify({ email: 'newuser@example.com', password: 'awesome' }))
+            .send(JSON.stringify({ email: user.email, password: 'awesome' }))
             .expect(200, '{"result":"force_password_change"}', done);
       });
     });
