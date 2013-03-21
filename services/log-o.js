@@ -4,7 +4,7 @@ var services = require('./')
     , util = require('util');
 
 module.exports.search = function (req, res, urlParts) {
-  services.utils.isAuth(req, res, function (user) {
+  services.utils.isAuth(req, res, 'SEARCH', function (user) {
     var qs = urlParts.query || '';
     services.syslog.sendMessage(user.email + ' viewed the logs with: ' + util.inspect(qs).replace(/(\r\n|\n|\r)/gm, ""));
     db.getMessages(qs, function (messages) {

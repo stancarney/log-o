@@ -13,7 +13,7 @@ describe('Server', function () {
   beforeEach(function (done) {
     request(server)
         .post('/auth')
-        .send(JSON.stringify({ email: 'admin', password: 'admin' }))
+        .send(JSON.stringify({ email: 'logo@example.com', password: 'password' }))
         .end(function (error, res) {
           assert.equal(200, res.statusCode, 'Before auth failed with code: ' + res.statusCode);
           token = res.headers['set-cookie'].toString().split(/auth=(.*?);.*/)[1];
@@ -36,6 +36,7 @@ describe('Server', function () {
       request(server)
           .post('/auth')
           .send(JSON.stringify({ email: 'nouser@example.com', password: 'password' }))
+          .expect('Content-Type', /json/)
           .expect(401, '{"result":"unauthorized"}', done);
     });
     it('should return 401 on not active', function (done) {
@@ -44,6 +45,7 @@ describe('Server', function () {
         request(server)
             .post('/auth')
             .send(JSON.stringify({ email: user.email, password: 'password' }))
+            .expect('Content-Type', /json/)
             .expect(401, '{"result":"unauthorized"}', done);
       });
     });
@@ -51,6 +53,7 @@ describe('Server', function () {
       request(server)
           .post('/auth')
           .send(JSON.stringify({ email: 'admin', password: 'password' }))
+          .expect('Content-Type', /json/)
           .expect(401, '{"result":"unauthorized"}', done);
     });
     it('should return 200 with force_password_change', function (done) {
@@ -59,6 +62,7 @@ describe('Server', function () {
         request(server)
             .post('/auth')
             .send(JSON.stringify({ email: user.email, password: 'awesome' }))
+            .expect('Content-Type', /json/)
             .expect(200, '{"result":"force_password_change"}', done);
       });
     });
@@ -69,6 +73,7 @@ describe('Server', function () {
       request(server)
           .post('/logout')
           .set('Cookie', 'auth=' + token)
+          .expect('Content-Type', /json/)
           .expect(200, '{"result":"success"}', done);
     });
   });
@@ -79,20 +84,26 @@ describe('Server', function () {
           .post('/user/add')
           .set('Cookie', 'auth=123')
           .send(JSON.stringify({email: 'joe@blow.com'}))
+          .expect('Content-Type', /json/)
           .expect(401, '{"result":"unauthorized"}', done);
     });
-    it('should return 200 on success', function (done) {
-      request(server)
-          .post('/user/add')
-          .set('Cookie', 'auth=' + token)
-          .send(JSON.stringify({email: 'joe@blow.com'}))
-          .expect(200, '{"result":"success"}', done);
+    it('should return 403 on invalid permissions', function (done) {
+      test_impl.getUserByEmail('logo@example.com', function (user) {
+        user.permissions.splice(user.permissions.indexOf('USER_ADD'), 1);
+        request(server)
+            .post('/user/add')
+            .set('Cookie', 'auth=' + token)
+            .send(JSON.stringify({email: 'joe@blow.com'}))
+            .expect('Content-Type', /json/)
+            .expect(403, '{"result":"forbidden"}', done);
+      });
     });
     it('should return 200 on success', function (done) {
       request(server)
           .post('/user/add')
           .set('Cookie', 'auth=' + token)
           .send(JSON.stringify({email: 'joe@blow.com'}))
+          .expect('Content-Type', /json/)
           .expect(200, '{"result":"success"}', done);
     });
   });
@@ -102,7 +113,18 @@ describe('Server', function () {
       request(server)
           .post('/user/list')
           .set('Cookie', 'auth=123')
+          .expect('Content-Type', /json/)
           .expect(401, '{"result":"unauthorized"}', done);
+    });
+    it('should return 403 on invalid permissions', function (done) {
+      test_impl.getUserByEmail('logo@example.com', function (user) {
+        user.permissions.splice(user.permissions.indexOf('USER_LIST'), 1);
+        request(server)
+            .post('/user/list')
+            .set('Cookie', 'auth=' + token)
+            .expect('Content-Type', /json/)
+            .expect(403, '{"result":"forbidden"}', done);
+      });
     });
     it('should return 200 on success', function (done) {
       request(server)
@@ -123,20 +145,26 @@ describe('Server', function () {
           .post('/user/edit')
           .set('Cookie', 'auth=123')
           .send(JSON.stringify({email: 'logo@example.com', active: true}))
+          .expect('Content-Type', /json/)
           .expect(401, '{"result":"unauthorized"}', done);
     });
-    it('should return 200 on success', function (done) {
-      request(server)
-          .post('/user/edit')
-          .set('Cookie', 'auth=' + token)
-          .send(JSON.stringify({email: 'logo@example.com', active: false}))
-          .expect(200, '{"result":"success"}', done);
+    it('should return 403 on invalid permissions', function (done) {
+      test_impl.getUserByEmail('logo@example.com', function (user) {
+        user.permissions.splice(user.permissions.indexOf('USER_EDIT'), 1);
+        request(server)
+            .post('/user/edit')
+            .set('Cookie', 'auth=' + token)
+            .send(JSON.stringify({email: 'logo@example.com', active: false}))
+            .expect('Content-Type', /json/)
+            .expect(403, '{"result":"forbidden"}', done);
+      });
     });
     it('should return 200 on success', function (done) {
       request(server)
           .post('/user/edit')
           .set('Cookie', 'auth=' + token)
           .send(JSON.stringify({email: 'logo@example.com', active: false}))
+          .expect('Content-Type', /json/)
           .expect(200, '{"result":"success"}', done);
     });
   });
@@ -147,6 +175,7 @@ describe('Server', function () {
           .post('/user/reset')
           .set('Cookie', 'auth=123')
           .send(JSON.stringify({email: 'logo@example.com'}))
+          .expect('Content-Type', /json/)
           .expect(401, '{"result":"unauthorized"}', done);
     });
     it('should return 200 on success', function (done) {
@@ -173,6 +202,7 @@ describe('Server', function () {
           .post('/user/password')
           .set('Cookie', 'auth=123')
           .send(JSON.stringify({newPassword: 'newpassword'}))
+          .expect('Content-Type', /json/)
           .expect(401, '{"result":"unauthorized"}', done);
     });
     it('should return 200 on success', function (done) {
@@ -199,7 +229,19 @@ describe('Server', function () {
           .post('/alert/add')
           .set('Cookie', 'auth=123')
           .send(JSON.stringify({name: 'myregex', regex: '.*', modifiers: 'gim', recipients: 'alert@example.com', enable: true}))
+          .expect('Content-Type', /json/)
           .expect(401, '{"result":"unauthorized"}', done);
+    });
+    it('should return 403 on invalid permissions', function (done) {
+      test_impl.getUserByEmail('logo@example.com', function (user) {
+        user.permissions.splice(user.permissions.indexOf('ALERT_ADD'), 1);
+        request(server)
+            .post('/alert/add')
+            .set('Cookie', 'auth=' + token)
+            .send(JSON.stringify({name: 'myregex', regex: '.*', modifiers: 'gim', recipients: 'alert@example.com', enable: true}))
+            .expect('Content-Type', /json/)
+            .expect(403, '{"result":"forbidden"}', done);
+      });
     });
     it('should return 200 on success', function (done) {
       request(server)
@@ -233,7 +275,18 @@ describe('Server', function () {
       request(server)
           .post('/alert/list')
           .set('Cookie', 'auth=123')
+          .expect('Content-Type', /json/)
           .expect(401, '{"result":"unauthorized"}', done);
+    });
+    it('should return 403 on invalid permissions', function (done) {
+      test_impl.getUserByEmail('logo@example.com', function (user) {
+        user.permissions.splice(user.permissions.indexOf('ALERT_LIST'), 1);
+        request(server)
+            .post('/alert/list')
+            .set('Cookie', 'auth=' + token)
+            .expect('Content-Type', /json/)
+            .expect(403, '{"result":"forbidden"}', done);
+      });
     });
     it('should return 200 on success', function (done) {
       test_impl.saveAlert(alert);
@@ -251,7 +304,19 @@ describe('Server', function () {
           .post('/alert/edit')
           .set('Cookie', 'auth=123')
           .send(JSON.stringify(alert))
+          .expect('Content-Type', /json/)
           .expect(401, '{"result":"unauthorized"}', done);
+    });
+    it('should return 403 on invalid permissions', function (done) {
+      test_impl.getUserByEmail('logo@example.com', function (user) {
+        user.permissions.splice(user.permissions.indexOf('ALERT_EDIT'), 1);
+        request(server)
+            .post('/alert/edit')
+            .set('Cookie', 'auth=' + token)
+            .send(JSON.stringify(alert))
+            .expect('Content-Type', /json/)
+            .expect(403, '{"result":"forbidden"}', done);
+      });
     });
     it('should return 200 on success', function (done) {
       test_impl.saveAlert(alert);

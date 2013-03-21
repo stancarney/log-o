@@ -87,4 +87,5 @@ server.on('close', function () {
   var msg = 'HTTP Server started on ' + os.hostname() + ' (' + address.address + ':' + address.port + ')';
   services.syslog.sendMessage(msg);
 });
+
 module.exports = server;

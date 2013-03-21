@@ -5,7 +5,7 @@ var config = require('../config.js')
 
 module.exports.add = function (req, res) {
   services.utils.parsePost(req, res, function () {
-    services.utils.isAuth(req, res, function (user) {
+    services.utils.isAuth(req, res, 'ALERT_ADD', function (user) {
       //TODO: check perms
       var alertParams = {name: res.post['name'], regex: res.post['regex'], modifiers: res.post['modifiers'], recipients: res.post['recipients'].replace(/\s/g, '').split(','), active: !!(res.post['active'] === 'true'), dateAdded: new Date()};
       if (alertParams.modifiers) {
@@ -27,7 +27,7 @@ module.exports.add = function (req, res) {
 };
 
 module.exports.list = function list(req, res) {
-  services.utils.isAuth(req, res, function (user) {
+  services.utils.isAuth(req, res, 'ALERT_LIST', function (user) {
     db.getAlerts(function (alerts) {
       res.writeHead(200, {'Content-Type': 'application/json'});
       res.write(JSON.stringify(alerts));
@@ -38,7 +38,7 @@ module.exports.list = function list(req, res) {
 
 module.exports.edit = function (req, res) {
   services.utils.parsePost(req, res, function () {
-    services.utils.isAuth(req, res, function (user) {
+    services.utils.isAuth(req, res, 'ALERT_EDIT', function (user) {
       //TODO: check perms
       var alertParams = {name: res.post['name'], regex: res.post['regex'], modifiers: res.post['modifiers'], recipients: res.post['recipients'].replace(/\s/g, '').split(','), active: !!(res.post['active'] === 'true'), dateAdded: new Date()};
       if (alertParams.modifiers) {

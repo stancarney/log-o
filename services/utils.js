@@ -4,9 +4,18 @@ var Cookies = require('cookies')
     , url = require('url')
     , crypto = require('crypto');
 
-function isAuth(req, res, callback) {
+function isAuth() {
+  var req = arguments[0];
+  var res = arguments[1];
+  var permission = arguments[2];
+  var callback = arguments[3];
   var cookies = new Cookies(req, res);
   var token = cookies.get('auth');
+
+  if (arguments.length === 3) {
+    callback = arguments[2];
+    permission = false;
+  }
 
   if (!token) {
     services.syslog.sendMessage('Expired or invalid token used. IP: ' + req.connection.remoteAddress);
@@ -18,6 +27,9 @@ function isAuth(req, res, callback) {
         if (!user.active) {
           services.syslog.sendMessage('Auth Failed (User Not Active): ' + user.email + ' IP: ' + req.connection.remoteAddress);
           services.utils.writeResponseMessage(res, 401, 'unauthorized');
+        } else if (permission && (!user.permissions || user.permissions.indexOf(permission) < 0)) {
+          services.syslog.sendMessage('Auth Failed (No Permission): ' + user.email + ' IP: ' + req.connection.remoteAddress);
+          services.utils.writeResponseMessage(res, 403, 'forbidden');
         } else if (user.forcePasswordChange && urlParts.pathname != '/user/password') {
           services.syslog.sendMessage('Auth (Change Password): ' + user.email + ' IP: ' + req.connection.remoteAddress);
           writeResponseMessage(res, 200, 'force_password_change');

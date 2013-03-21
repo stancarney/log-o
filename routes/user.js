@@ -46,7 +46,7 @@ module.exports.auth = function (req, res) {
 
 module.exports.add = function (req, res) {
   services.utils.parsePost(req, res, function () {
-    services.utils.isAuth(req, res, function (authUser) {
+    services.utils.isAuth(req, res, 'USER_ADD', function (authUser) {
 
       //TODO: check perms
       var emailAddress = res.post['email'];
@@ -82,7 +82,15 @@ module.exports.addAdmin = function () {
 
     bcrypt.genSalt(10, function (err, salt) {
       bcrypt.hash('admin', salt, function (err, hashedPassword) {
-        db.saveUser({email: 'admin', password: hashedPassword, forcePasswordChange: true, active: true}, function (newUser) {
+        db.saveUser({email: 'admin', password: hashedPassword, forcePasswordChange: true, active: true, permissions: [
+          'USER_ADD',
+          'USER_LIST',
+          'USER_EDIT',
+          'USER_REST',
+          'ALERT_ADD',
+          'ALERT_LIST',
+          'ALERT_EDIT',
+          'SEARCH']}, function (newUser) {
           services.syslog.sendMessage('User Add: admin');
         });
       });
@@ -91,7 +99,7 @@ module.exports.addAdmin = function () {
 };
 
 module.exports.list = function list(req, res) {
-  services.utils.isAuth(req, res, function (authUser) {
+  services.utils.isAuth(req, res, 'USER_LIST', function (authUser) {
     db.getUsers(function (users) {
       services.syslog.sendMessage('User List: ' + authUser.email + ' IP: ' + req.connection.remoteAddress);
       if (!users) {
@@ -106,7 +114,7 @@ module.exports.list = function list(req, res) {
 
 module.exports.edit = function (req, res) {
   services.utils.parsePost(req, res, function () {
-    services.utils.isAuth(req, res, function (authUser) {
+    services.utils.isAuth(req, res, 'USER_EDIT', function (authUser) {
       var userParams = {email: res.post['email'], active: !!(res.post['active'] === 'true')};
 
       db.getUserByEmail(userParams.email, function (user) {
