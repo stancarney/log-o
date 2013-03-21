@@ -6,6 +6,8 @@ var http = require('http')
     , util = require('util')
     , querystring = require('querystring');
 
+var ALL_PERMISSIONS = ['USER_ADD', 'USER_LIST', 'USER_EDIT', 'USER_RESET', 'ALERT_ADD', 'ALERT_LIST', 'ALERT_EDIT', 'SEARCH'].sort();
+
 var EMAIL_SCHEMA = {
   required: true
 };
@@ -111,11 +113,12 @@ function userList(callback) {
     var users = [];
     if (result && result.length > 0) {
       var rows = [
-        ['Email'.bold, 'Active'.bold, 'Last Access'.bold]
+        ['Email'.bold, 'Active'.bold, 'Last Access'.bold, 'Permissions'.bold]
       ];
       for (var index in result) {
         var r = result[index];
-        rows.push([r['email'], r['active'], moment(r['lastAccess']).format('MMM D YYYY, HH:mm:ss')]);
+        console.log(r['permissions']);
+        rows.push([r['email'], r['active'], moment(r['lastAccess']).format('MMM D YYYY, HH:mm:ss'), r['permissions'].sort()]);
         users[r['email']] = r;
       }
       util.puts(cliff.stringifyRows(rows));
@@ -136,18 +139,41 @@ function userEdit() {
         email: EMAIL_SCHEMA
       }
     }, function (err, p) {
+
       var user = users[p.email];
       EMAIL_SCHEMA.default = user.email;
       ACTIVE_SCHEMA.default = user.active;
+      var permissions = {};
+      for (var i in ALL_PERMISSIONS) {
+        var perm = ALL_PERMISSIONS[i];
+        permissions[perm] = {};
+        permissions[perm].name = perm;
+        permissions[perm].default = user.permissions.indexOf(perm) < 0 ? 'n' : 'y';
+        permissions[perm].pattern = /^[YNyn]?$/;
+        permissions[perm].message = 'Enable: y/n';
+      }
       prompt.get({
         properties: {
           email: EMAIL_SCHEMA,
-          active: ACTIVE_SCHEMA
+          active: ACTIVE_SCHEMA,
+          permissions: {
+            properties: permissions
+          }
         }
       }, function (err, p) {
+
+        var permissions = [];
+        var yes = /^[Yy]?$/;
+        for (var i in p.permissions) {
+          if (yes.test(p.permissions[i])) {
+            permissions.push(i);
+          }
+        }
+        console.log(p.permissions);
         var postData = JSON.stringify({
           email: p.email,
-          active: p.active
+          active: p.active,
+          permissions: permissions
         });
         request('/user/edit', postData);
       });

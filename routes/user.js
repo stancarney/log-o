@@ -59,7 +59,7 @@ module.exports.add = function (req, res) {
       var clearPassword = password(3);
       bcrypt.genSalt(10, function (err, salt) {
         bcrypt.hash(clearPassword, salt, function (err, hashedPassword) {
-          db.saveUser({email: emailAddress, password: hashedPassword, forcePasswordChange: true, active: true}, function (newUser) {
+          db.saveUser({email: emailAddress, password: hashedPassword, forcePasswordChange: true, active: true, permissions: ['SEARCH']}, function (newUser) {
             services.syslog.sendMessage('User Add: ' + res.post['email'] + ' by: ' + authUser.email + ' IP: ' + req.connection.remoteAddress);
             email.sendWelcome(newUser.email, clearPassword);
             services.utils.writeResponseMessage(res, 200, 'success');
@@ -86,7 +86,7 @@ module.exports.addAdmin = function () {
           'USER_ADD',
           'USER_LIST',
           'USER_EDIT',
-          'USER_REST',
+          'USER_RESET',
           'ALERT_ADD',
           'ALERT_LIST',
           'ALERT_EDIT',
@@ -115,7 +115,7 @@ module.exports.list = function list(req, res) {
 module.exports.edit = function (req, res) {
   services.utils.parsePost(req, res, function () {
     services.utils.isAuth(req, res, 'USER_EDIT', function (authUser) {
-      var userParams = {email: res.post['email'], active: !!(res.post['active'] === 'true')};
+      var userParams = {email: res.post['email'], active: !!(res.post['active'] === 'true'), permissions: res.post['permissions']};
 
       db.getUserByEmail(userParams.email, function (user) {
         if (!user) {
