@@ -117,7 +117,6 @@ function userList(callback) {
       ];
       for (var index in result) {
         var r = result[index];
-        console.log(r['permissions']);
         rows.push([r['email'], r['active'], moment(r['lastAccess']).format('MMM D YYYY, HH:mm:ss'), r['permissions'].sort()]);
         users[r['email']] = r;
       }
@@ -169,7 +168,6 @@ function userEdit() {
             permissions.push(i);
           }
         }
-        console.log(p.permissions);
         var postData = JSON.stringify({
           email: p.email,
           active: p.active,
