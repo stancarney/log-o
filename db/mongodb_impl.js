@@ -18,25 +18,25 @@ module.exports.init = function (mongodb, username, password) {
           collection.ensureIndex({time: -1, timestamp: -1}, function (err, result) {
             assert.equal(null, err);
           });
-          collection.ensureIndex({host: 1}, function (err, result) {
+          collection.ensureIndex({host: 1, time: -1, timestamp: -1}, function (err, result) {
             assert.equal(null, err);
           });
-          collection.ensureIndex({severity: 1}, function (err, result) {
+          collection.ensureIndex({host: 1, keywords: 1, time: -1, timestamp: -1}, function (err, result) {
             assert.equal(null, err);
           });
-          collection.ensureIndex({facility: 1}, function (err, result) {
+          collection.ensureIndex({host: 1, severity: 1, time: -1, timestamp: -1}, function (err, result) {
             assert.equal(null, err);
           });
-          collection.ensureIndex({keywords: 1, host: 1}, function (err, result) {
+          collection.ensureIndex({host: 1, facility: 1, time: -1, timestamp: -1}, function (err, result) {
             assert.equal(null, err);
           });
-          collection.ensureIndex({host: 1, severity: 1}, function (err, result) {
+          collection.ensureIndex({severity: 1, time: -1, timestamp: -1}, function (err, result) {
             assert.equal(null, err);
           });
-          collection.ensureIndex({host: 1, facility: 1}, function (err, result) {
+          collection.ensureIndex({facility: 1, time: -1, timestamp: -1}, function (err, result) {
             assert.equal(null, err);
           });
-          collection.ensureIndex({message: 1}, function (err, result) {
+          collection.ensureIndex({message: 1, time: -1, timestamp: -1}, function (err, result) {
             assert.equal(null, err);
           });
         });
