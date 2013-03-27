@@ -1,6 +1,5 @@
 var services = require('../services')
     , db = require('../db.js')
-    , url = require('url')
     , util = require('util');
 
 module.exports.search = function (req, res, urlParts) {

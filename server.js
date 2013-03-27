@@ -75,7 +75,7 @@ server.on('request', function (req, res) {
       routes.alert.edit(req, res);
       break;
     case '/search':
-      services.messages.search(req, res, urlParts);
+      routes.messages.search(req, res, urlParts);
       break;
     default:
       services.utils.writeResponseMessage(res, 404, 'page_not_found');
