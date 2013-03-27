@@ -21,8 +21,7 @@ exports.sendReset = function (email, adminEmail, password) {
 
 exports.sendAlert = function (email, alert, parsedMessage) {
   sendEmail(email, 'ALERT: ' + alert.name,
-      'ALERT hit for rule named: ' +
-          alert.name + '\n\n' +
+      alert.name + '\n\n' +
           '[' +
           moment(parsedMessage['time']).format('MMM D YYYY, HH:mm:ss') +
           ' ' +

@@ -1,5 +1,4 @@
 var db = require('../db.js')
-    , email = require('./email.js')
     , services = require('../services')
     , password = require('password')
     , crypto = require('crypto')
@@ -50,7 +49,7 @@ module.exports.add = function (req, res) {
 
       //TODO: check perms
       var emailAddress = res.post['email'];
-      if (!email.isValidEmail(emailAddress)) {
+      if (!services.email.isValidEmail(emailAddress)) {
         services.syslog.sendMessage('User Add Failed (Invalid Email): ' + res.post['email'] + ' by: ' + authUser.email + ' IP: ' + req.connection.remoteAddress);
         services.utils.writeResponseMessage(res, 400, 'invalid_email');
         return;
@@ -61,7 +60,7 @@ module.exports.add = function (req, res) {
         bcrypt.hash(clearPassword, salt, function (err, hashedPassword) {
           db.saveUser({email: emailAddress, password: hashedPassword, forcePasswordChange: true, active: true, permissions: ['SEARCH']}, function (newUser) {
             services.syslog.sendMessage('User Add: ' + res.post['email'] + ' by: ' + authUser.email + ' IP: ' + req.connection.remoteAddress);
-            email.sendWelcome(newUser.email, clearPassword);
+            services.email.sendWelcome(newUser.email, clearPassword);
             services.utils.writeResponseMessage(res, 200, 'success');
           });
         });
@@ -149,7 +148,7 @@ module.exports.reset = function (req, res) {
         var clearPassword = password(3);
         bcrypt.genSalt(10, function (err, salt) {
           bcrypt.hash(clearPassword, salt, function (err, hashedPassword) {
-            email.sendReset(resetUser.email, authUser.email, clearPassword);
+            services.email.sendReset(resetUser.email, authUser.email, clearPassword);
             resetUser.forcePasswordChange = true;
             resetUser.password = hashedPassword;
             db.saveUser(resetUser, function (user) {

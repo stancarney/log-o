@@ -1,4 +1,4 @@
-var services = require('./')
+var services = require('../services')
     , db = require('../db.js')
     , url = require('url')
     , util = require('util');

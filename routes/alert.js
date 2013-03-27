@@ -1,13 +1,22 @@
 var config = require('../config.js')
     , db = require('../db.js')
-    , email = require('./email.js')
     , services = require('../services');
 
-module.exports.add = function (req, res) {
+function add(req, res) {
   services.utils.parsePost(req, res, function () {
     services.utils.isAuth(req, res, 'ALERT_ADD', function (user) {
-      //TODO: check perms
-      var alertParams = {name: res.post['name'], regex: res.post['regex'], modifiers: res.post['modifiers'], recipients: res.post['recipients'].replace(/\s/g, '').split(','), active: !!(res.post['active'] === 'true'), dateAdded: new Date()};
+      var alertParams = {
+        name: res.post['name'],
+        host: res.post['host'],
+        facility: res.post['facility'],
+        severity: res.post['severity'],
+        message: res.post['message'],
+        modifiers: res.post['modifiers'],
+        recipients: res.post['recipients'].replace(/\s/g, '').split(','),
+        active: !!(res.post['active'] === 'true'),
+        dateAdded: new Date()
+      };
+
       if (alertParams.modifiers) {
         alertParams.modifiers = alertParams.modifiers.split('').sort().join('');  //TODO: Verify on gim is passed in!
       }
@@ -24,9 +33,9 @@ module.exports.add = function (req, res) {
       });
     });
   });
-};
+}
 
-module.exports.list = function list(req, res) {
+function list(req, res) {
   services.utils.isAuth(req, res, 'ALERT_LIST', function (user) {
     db.getAlerts(function (alerts) {
       res.writeHead(200, {'Content-Type': 'application/json'});
@@ -34,13 +43,22 @@ module.exports.list = function list(req, res) {
       res.end();
     });
   });
-};
+}
 
-module.exports.edit = function (req, res) {
+function edit(req, res) {
   services.utils.parsePost(req, res, function () {
     services.utils.isAuth(req, res, 'ALERT_EDIT', function (user) {
-      //TODO: check perms
-      var alertParams = {name: res.post['name'], regex: res.post['regex'], modifiers: res.post['modifiers'], recipients: res.post['recipients'].replace(/\s/g, '').split(','), active: !!(res.post['active'] === 'true'), dateAdded: new Date()};
+      var alertParams = {
+        name: res.post['name'],
+        host: res.post['host'],
+        facility: res.post['facility'],
+        severity: res.post['severity'],
+        message: res.post['message'],
+        modifiers: res.post['modifiers'],
+        recipients: res.post['recipients'].replace(/\s/g, '').split(','),
+        active: !!(res.post['active'] === 'true'),
+        dateAdded: new Date()};
+
       if (alertParams.modifiers) {
         alertParams.modifiers = alertParams.modifiers.split('').sort().join('');  //TODO: Verify on gim is passed in!
       }
@@ -60,19 +78,10 @@ module.exports.edit = function (req, res) {
       });
     });
   });
-};
+}
 
-//TODO: Not really a controller. More like a service.
-exports.check = function (parsedMessage) {
-  db.getActiveAlerts(function (alerts) {
-    for (var alert in alerts) {
-      var regex = new RegExp(alert.regex, alert.modifiers || '');
-      if (regex.test(parsedMessage['originalMessage'])) {
-        var emails = alert.recipients;
-        for (var e in emails) {
-          email.sendAlert(emails[e], alert, parsedMessage);
-        }
-      }
-    }
-  });
+module.exports = {
+  add: add,
+  list: list,
+  edit: edit
 };

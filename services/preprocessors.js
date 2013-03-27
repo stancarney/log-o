@@ -3,6 +3,7 @@ var config = require('../config.js')
     , path = require('path')
     , moduleHolder = {};
 
+//TODO:Stan adjust path to load from preprocessors/
 function loadModules(modulePath) {
   fs.lstat(modulePath, function (err, stat) {
     if (err) {

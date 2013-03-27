@@ -6,11 +6,13 @@ var http = require('http')
     , util = require('util')
     , querystring = require('querystring');
 
-var ALL_PERMISSIONS = ['USER_ADD', 'USER_LIST', 'USER_EDIT', 'USER_RESET', 'ALERT_ADD', 'ALERT_LIST', 'ALERT_EDIT', 'SEARCH'].sort();
+//TODO:Stan STOP LOGGING ME OUT!
+//TODO:Stan unit test the rest of the app
+//TODO:Stan build live mode
+//TODO:Stan display original message for ALERTING
+//TODO:Stan adjust alerts to also used host, severity, factility and message not original message).
 
-var EMAIL_SCHEMA = {
-  required: true
-};
+var ALL_PERMISSIONS = ['USER_ADD', 'USER_LIST', 'USER_EDIT', 'USER_RESET', 'ALERT_ADD', 'ALERT_LIST', 'ALERT_EDIT', 'SEARCH'].sort();
 
 var PASSWORD_SCHEMA = {
   hidden: true,
@@ -24,16 +26,8 @@ var ALERT_NAME_SCHEMA = {
   required: true
 };
 
-var REGEX_SCHEMA = {
-  required: true,
-  before: function (value) {
-    new RegExp(value); //compile regex to see if it is valid.
-    return value
-  }
-};
-
 var REGEX_MODIFIERS_SCHEMA = {
-  pattern: /^g?i?m?$/,
+  pattern: /^g?i?m? ?$/,
   required: false,
   before: function (value) {
     return value.split('').sort().join('');
@@ -128,19 +122,20 @@ function userList(callback) {
 
 function userEdit() {
   userList(function (users) {
-    EMAIL_SCHEMA.conform = function (value) {
-      return value in users;
-    };
-    EMAIL_SCHEMA.message = util.format('Valid options: %s', Object.keys(users));
     prompt.start();
     prompt.get({
       properties: {
-        email: EMAIL_SCHEMA
+        email: {
+          required: true,
+          conform: function (value) {
+            return value in users;
+          },
+          message: util.format('Valid options: %s', Object.keys(users))
+        }
       }
     }, function (err, p) {
 
       var user = users[p.email];
-      EMAIL_SCHEMA.default = user.email;
       ACTIVE_SCHEMA.default = user.active;
       var permissions = {};
       for (var i in ALL_PERMISSIONS) {
@@ -153,7 +148,10 @@ function userEdit() {
       }
       prompt.get({
         properties: {
-          email: EMAIL_SCHEMA,
+          email: {
+            required: true,
+            default: user.email
+          },
           active: ACTIVE_SCHEMA,
           permissions: {
             properties: permissions
@@ -207,19 +205,35 @@ function changePassword() {
 }
 
 function alertAdd() {
+  var regexSchema = {
+    required: false,
+    before: validateRegex
+  };
   prompt.start();
   prompt.get({
     properties: {
       name: ALERT_NAME_SCHEMA,
-      regex: REGEX_SCHEMA,
+      host: regexSchema,
+      facility: regexSchema,
+      severity: regexSchema,
+      message: regexSchema,
       modifiers: REGEX_MODIFIERS_SCHEMA,
       recipients: EMAIL_LIST_SCHEMA,
       active: ACTIVE_SCHEMA
     }
   }, function (err, p) {
+
+    if (!p.host && !p.facility && !p.severity && !p.message) {
+      console.log('One of [host|facility|severity|message] required.');
+      return;
+    }
+
     var postData = JSON.stringify({
       name: p.name,
-      regex: p.regex,
+      host: p.host,
+      facility: p.facility,
+      severity: p.severity,
+      message: p.message,
       modifiers: p.modifiers,
       recipients: p.recipients,
       active: p.active
@@ -233,11 +247,11 @@ function alertList(callback) {
     var alerts = [];
     if (result && result.length > 0) {
       var rows = [
-        ['Name'.bold, 'Date Added'.bold, 'Regex'.bold, 'Modifiers'.bold, 'Recipients'.bold, 'Active'.bold]
+        ['Name'.bold, 'Date Added'.bold, 'Host'.bold, 'Facility'.bold, 'Severity'.bold, 'Message'.bold, 'Modifiers'.bold, 'Recipients'.bold, 'Active'.bold]
       ];
       for (var index in result) {
         var r = result[index];
-        rows.push([r['name'], moment(r['dateAdded']).format('MMM D YYYY, HH:mm:ss'), r['regex'], r['modifiers'], r['recipients'], r['active'] == true ? 'true'.green : 'false'.red]);
+        rows.push([r['name'], moment(r['dateAdded']).format('MMM D YYYY, HH:mm:ss'), r['host'], r['facility'], r['severity'], r['message'], r['modifiers'], r['recipients'], r['active'] == true ? 'true'.green : 'false'.red]);
         alerts[r['name']] = r;
       }
       util.puts(cliff.stringifyRows(rows));
@@ -260,14 +274,32 @@ function alertEdit() {
     }, function (err, p) {
       var alert = alerts[p.name];
       ALERT_NAME_SCHEMA.default = alert.name;
-      REGEX_SCHEMA.default = alert.regex;
       REGEX_MODIFIERS_SCHEMA.default = alert.modifiers;
       EMAIL_LIST_SCHEMA.default = alert.recipients;
       ACTIVE_SCHEMA.default = alert.active;
       prompt.get({
         properties: {
           name: ALERT_NAME_SCHEMA,
-          regex: REGEX_SCHEMA,
+          host: {
+            required: false,
+            before: validateRegex,
+            default: alert.host
+          },
+          facility: {
+            required: false,
+            before: validateRegex,
+            default: alert.facility
+          },
+          severity: {
+            required: false,
+            before: validateRegex,
+            default: alert.severity
+          },
+          message: {
+            required: false,
+            before: validateRegex,
+            default: alert.message
+          },
           modifiers: REGEX_MODIFIERS_SCHEMA,
           recipients: EMAIL_LIST_SCHEMA,
           active: ACTIVE_SCHEMA
@@ -275,8 +307,11 @@ function alertEdit() {
       }, function (err, p) {
         var postData = JSON.stringify({
           name: p.name,
-          regex: p.regex,
-          modifiers: p.modifiers,
+          host: p.host.replace(/^\s$/, ''),
+          facility: p.facility.replace(/^\s$/, ''),
+          severity: p.severity.replace(/^\s$/, ''),
+          message: p.message.replace(/^\s$/, ''),
+          modifiers: p.modifiers.replace(/^\s$/, ''),
           recipients: p.recipients,
           active: p.active
         });
@@ -290,7 +325,9 @@ function auth() {
   prompt.start();
   prompt.get({
     properties: {
-      email: EMAIL_SCHEMA,
+      email: {
+        required: true
+      },
       password: PASSWORD_SCHEMA
     }
   }, function (err, p) {
@@ -400,4 +437,9 @@ function request(path, postData, callback) {
     req.write(postData);
     req.end();
   });
+}
+
+function validateRegex(value) {
+  new RegExp(value); //compile regex to see if it is valid.
+  return value
 }

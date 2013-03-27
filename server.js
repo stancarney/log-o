@@ -1,5 +1,5 @@
 var db = require('./db.js')
-    , logo = require('./services/log-o.js')
+    , logo = require('./routes/messages.js')
     , services = require('./services')
     , routes = require('./routes')
     , config = require('./config.js')
@@ -75,7 +75,7 @@ server.on('request', function (req, res) {
       routes.alert.edit(req, res);
       break;
     case '/search':
-      services.logo.search(req, res, urlParts);
+      services.messages.search(req, res, urlParts);
       break;
     default:
       services.utils.writeResponseMessage(res, 404, 'page_not_found');

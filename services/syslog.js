@@ -38,7 +38,7 @@ exports.save = function (rawMessage) {
 
       db.saveMessage(parsedMessage, function (message) {
         if (message) {
-          routes.alert.check(parsedMessage);
+          services.alert.check(parsedMessage);
         } else {
           console.log('Message was not saved.');
         }
