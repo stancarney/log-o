@@ -3,8 +3,12 @@ var rewire = require('rewire')
     , test_impl = require('../../db/test_impl.js');
 
 describe('Alert', function () {
+  //TODO:Stan apparently this only works for the first test in the suite. i.e. make test
   process.env['db_init'] = './db/test_impl.js'; //referenced from project root
   var alert = rewire('../../services/alert.js');
+  alert.stopAlertInterval();
+  alert.setAlertInterval(1);
+  alert.startAlertInterval();
 
   var email = null;
   var parsedMessage = {
@@ -39,14 +43,14 @@ describe('Alert', function () {
         modifiers: '',
         recipients: ['alert@example.com'],
         active: true}, function (newAlert) {
+        alert.check(parsedMessage, function (value) {
+          assert.equal(value, true);
+        });
         alert.__set__('email', {
           sendAlert: function (email, alert, parsedMessage) {
             assert.equal(email, 'alert@example.com');
+            done();
           }
-        });
-        alert.check(parsedMessage, function (value) {
-          assert.equal(value, true);
-          done();
         });
       });
     });
@@ -59,14 +63,14 @@ describe('Alert', function () {
         modifiers: 'i',
         recipients: ['alert@example.com'],
         active: true}, function (newAlert) {
+        alert.check(parsedMessage, function (value) {
+          assert.equal(value, true);
+        });
         alert.__set__('email', {
           sendAlert: function (email, alert, parsedMessage) {
             assert.equal(email, 'alert@example.com');
+            done();
           }
-        });
-        alert.check(parsedMessage, function (value) {
-          assert.equal(value, true);
-          done();
         });
       });
     });
@@ -99,14 +103,14 @@ describe('Alert', function () {
         modifiers: '',
         recipients: ['alert@example.com'],
         active: true}, function (newAlert) {
+        alert.check(parsedMessage, function (value) {
+          assert.equal(value, true);
+        });
         alert.__set__('email', {
           sendAlert: function (email, alert, parsedMessage) {
             assert.equal(email, 'alert@example.com');
+            done();
           }
-        });
-        alert.check(parsedMessage, function (value) {
-          assert.equal(value, true);
-          done();
         });
       });
     });
@@ -139,14 +143,14 @@ describe('Alert', function () {
         modifiers: '',
         recipients: ['alert@example.com'],
         active: true}, function (newAlert) {
+        alert.check(parsedMessage, function (value) {
+          assert.equal(value, true);
+        });
         alert.__set__('email', {
           sendAlert: function (email, alert, parsedMessage) {
             assert.equal(email, 'alert@example.com');
+            done();
           }
-        });
-        alert.check(parsedMessage, function (value) {
-          assert.equal(value, true);
-          done();
         });
       });
     });
@@ -179,14 +183,14 @@ describe('Alert', function () {
         modifiers: '',
         recipients: ['alert@example.com'],
         active: true}, function (newAlert) {
+        alert.check(parsedMessage, function (value) {
+          assert.equal(value, true);
+        });
         alert.__set__('email', {
           sendAlert: function (email, alert, parsedMessage) {
             assert.equal(email, 'alert@example.com');
+            done();
           }
-        });
-        alert.check(parsedMessage, function (value) {
-          assert.equal(value, true);
-          done();
         });
       });
     });
@@ -219,14 +223,14 @@ describe('Alert', function () {
         modifiers: '',
         recipients: ['alert@example.com'],
         active: true}, function (newAlert) {
+        alert.check(parsedMessage, function (value) {
+          assert.equal(value, true);
+        });
         alert.__set__('email', {
           sendAlert: function (email, alert, parsedMessage) {
             assert.equal(email, 'alert@example.com');
+            done();
           }
-        });
-        alert.check(parsedMessage, function (value) {
-          assert.equal(value, true);
-          done();
         });
       });
     });

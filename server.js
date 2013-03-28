@@ -23,6 +23,9 @@ server.on('listening', function () {
        */
       routes.user.addAdmin();
 
+      services.alert.setAlertInterval(config.get('alert_interval'));
+      services.alert.startAlertInterval();
+
       var address = server.address() || {address: 'NO ADDRESS', port: 'NO PORT'};
       var msg = 'HTTP Server started on ' + os.hostname() + ' (' + address.address + ':' + address.port + ')';
       services.syslog.sendMessage(msg);

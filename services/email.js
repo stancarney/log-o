@@ -1,5 +1,6 @@
 var config = require('../config.js')
     , moment = require('moment')
+    , util = require('util')
     , server = require('emailjs').server.connect(
         {
           user: config.get('smtp_username'),
@@ -11,32 +12,30 @@ var config = require('../config.js')
         }
     );
 
-exports.sendWelcome = function (email, password) {
+function sendWelcome(email, password) {
   sendEmail(email, 'Welcome to Log-o', 'Here is your password: ' + password);
-};
+}
 
-exports.sendReset = function (email, adminEmail, password) {
+function sendReset(email, adminEmail, password) {
   sendEmail(email, 'Log-o Account Reset', 'Your log-o account has been reset by ' + adminEmail + '. Here is your new password: ' + password);
-};
+}
 
-exports.sendAlert = function (email, alert, parsedMessage) {
-  sendEmail(email, 'ALERT: ' + alert.name,
-      alert.name + '\n\n' +
-          '[' +
-          moment(parsedMessage['time']).format('MMM D YYYY, HH:mm:ss') +
-          ' ' +
-          parsedMessage['facility'] +
-          ' ' +
-          parsedMessage['severity'] +
-          ']\t' +
-          parsedMessage['host'] +
-          '   ' +
-          parsedMessage['message']);
-};
+function sendAlert(email, alert, parsedMessages) {
+  var body = util.format('%s\n\n', alert.name);
+  for (var i in parsedMessages) {
+    body += util.format('%s %s\t%s %s %s\n',
+        moment(parsedMessages[i]['time']).format('MMM D YYYY, HH:mm:ss'),
+        parsedMessages[i]['facility'],
+        parsedMessages[i]['severity'],
+        parsedMessages[i]['host'],
+        parsedMessages[i]['message']);
+  }
+  sendEmail(email, 'ALERT: ' + alert.name, body);
+}
 
-exports.isValidEmail = function (email) {
+function isValidEmail(email) {
   return /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+(?:[A-Z]{2}|com|org|net|gov|mil|biz|info|mobi|name|aero|jobs|museum)\b/i.test(email);
-};
+}
 
 function sendEmail(to, subject, body) {
   server.send({
@@ -48,3 +47,10 @@ function sendEmail(to, subject, body) {
     if (err) console.log(err);
   });
 }
+
+module.exports = {
+  sendWelcome: sendWelcome,
+  sendReset: sendReset,
+  sendAlert: sendAlert,
+  isValidEmail: isValidEmail
+};

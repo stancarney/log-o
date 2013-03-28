@@ -66,6 +66,16 @@ describe('Server', function () {
             .expect(200, '{"result":"force_password_change"}', done);
       });
     });
+    it('should return 200 without force_password_change', function (done) {
+      var bcrypt_password = bcrypt.hashSync('awesome', bcrypt.genSaltSync(10));
+      test_impl.saveUser({email: 'newuser@example.com', password: bcrypt_password, active: true, forcePasswordChange: false}, function (user) {
+        request(server)
+            .post('/auth')
+            .send(JSON.stringify({ email: user.email, password: 'awesome' }))
+            .expect('Content-Type', /json/)
+            .expect(200, '{"result":"success"}', done);
+      });
+    });
   });
 
   describe('/logout', function () {
