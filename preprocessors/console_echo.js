@@ -12,7 +12,6 @@
  message
  timestamp
  hostname
- keywords
  _id
  message_hash
  previous_hash

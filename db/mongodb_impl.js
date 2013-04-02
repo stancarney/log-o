@@ -21,9 +21,6 @@ module.exports.init = function (mongodb, username, password) {
           collection.ensureIndex({host: 1, time: -1, timestamp: -1}, function (err, result) {
             assert.equal(null, err);
           });
-          collection.ensureIndex({host: 1, keywords: 1, time: -1, timestamp: -1}, function (err, result) {
-            assert.equal(null, err);
-          });
           collection.ensureIndex({host: 1, severity: 1, time: -1, timestamp: -1}, function (err, result) {
             assert.equal(null, err);
           });

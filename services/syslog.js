@@ -12,7 +12,6 @@ var config = require('../config.js')
     , microtime = require('microtime');
 
 exports.save = function (rawMessage) {
-  var now = microtime.now();
   try {
     //remove bash color chars and BEL characters. The #033 is there because sometimes the characters have already been escaped.
     rawMessage = rawMessage.replace(/(\x1B|#033)\[([0-9]{1,3}((;[0-9]{1,3})*)?)?[m|K]/g, '').replace(/(\x07|#007)/g, ''); //TODO: move into pre-processor?
@@ -32,9 +31,8 @@ exports.save = function (rawMessage) {
         }
       }
 
-      parsedMessage['timestamp'] = now; //microseconds used to sort
+      parsedMessage['timestamp'] = microtime.now(); //microseconds used to sort
       parsedMessage['hostname'] = os.hostname();
-      parsedMessage['keywords'] = cleanKeywords(parsedMessage['message'].toLowerCase().split(' '));
 
       db.saveMessage(parsedMessage, function (message) {
         if (message) {
@@ -76,17 +74,3 @@ exports.sendMessage = function (message) {
     });
   }
 };
-
-function cleanKeywords(array) {
-  for (var i = array.length - 1; i >= 0; i--) {
-    var punct = /^[^\d\w\s]+|[^\d\w\s]+$/g;
-    if (array[i].match(punct, '')) {
-      array[i] = array[i].replace(punct, '');
-    }
-
-    if (array[i] === '') {
-      array.splice(i, 1);
-    }
-  }
-  return array;
-}
