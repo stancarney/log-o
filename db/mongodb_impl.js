@@ -7,7 +7,7 @@ module.exports.init = function (mongodb, username, password) {
   mongodb.open(function (err, data) {
     if (data) {
       data.authenticate(username, password, function (err2, data2) {
-        if (err2) console.log(err2);
+        if (err2) throw new Error(err2);
         db = mongodb;
         mongodb.collection('users', function (err, collection) {
           collection.ensureIndex({email: 1}, {unique: true}, function (err, result) {
@@ -42,7 +42,7 @@ module.exports.init = function (mongodb, username, password) {
         });
       });
     } else {
-      console.log(err);
+      throw new Error(err);
     }
   });
 };
@@ -89,8 +89,7 @@ module.exports.getUserByEmail = function (email, callback) {
 module.exports.saveMessage = function (message, callback) {
   saveDocument('messages', message, function (err, message) {
     if (err) {
-      console.log('Could not save message:', err);
-      return;
+      throw new Error('Could not save message:', err);
     }
 
     if (!callback) {
@@ -102,6 +101,10 @@ module.exports.saveMessage = function (message, callback) {
 
 module.exports.getMessages = function (queryString, callback) {
   db.collection('messages', function (err, collection) {
+    if (err) {
+      throw new Error(err);
+    }
+
     var args = null;
     try {
       args = JSON.parse(queryString['q']);
@@ -126,6 +129,47 @@ module.exports.getMessages = function (queryString, callback) {
         messages.push(message); // This kind of sucks. In order to reverse the Cursor we have to load it all in memory.
       } else {
         callback(messages);
+      }
+    });
+  });
+};
+
+module.exports.tailMessages = function (queryString, callback) {
+  db.collection('messages', function (err, collection) {
+    if (err) {
+      throw new Error(err);
+    }
+
+    collection.isCapped(function (err, capped) {
+      if (err) {
+        throw new Error(err);
+      }
+
+      if (capped) {
+        var args = null;
+        try {
+          args = JSON.parse(queryString['q']);
+        } catch (e) {
+          args = {};
+        }
+
+        //initial query to get the last record matching the criteria
+        var query = collection.find(args).sort({time: -1, timestamp: -1}).limit(1);
+        query.each(function (err, message) {
+          if (err) {
+            throw new Error(err);
+          }
+
+          if (message) {
+            args._id = { $gt: message._id };
+            var tailableQuery = collection.find(args, {tailable: true}).sort({time: -1, timestamp: -1});
+            tailableQuery.each(function (err, tailMessage) {
+              callback(tailMessage);
+            });
+          }
+        });
+      } else {
+        throw new Error('messages needs to be a capped collection for tail to work!');
       }
     });
   });
@@ -157,8 +201,7 @@ module.exports.getActiveAlerts = function (callback) {
     var alerts = [];
     collection.find({enable: true}).sort({email: 1}).toArray(function (err, alerts) {
       if (err) {
-        console.log(err);
-        return;
+        throw new Error(err);
       }
       callback(alerts);
     });

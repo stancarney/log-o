@@ -79,6 +79,10 @@ function getMessages(queryString, callback) {
   callback(messages);
 }
 
+function tailMessages(queryString, callback) {
+  callback(messages);
+}
+
 /******************************************************************
  *
  * Alert Functions.
@@ -132,6 +136,7 @@ module.exports = {
   getUserByEmail: getUserByEmail,
   saveMessage: saveMessage,
   getMessages: getMessages,
+  tailMessages: tailMessages,
   saveAlert: saveAlert,
   getAlerts: getAlerts,
   getActiveAlerts: getActiveAlerts,

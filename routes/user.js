@@ -28,6 +28,7 @@ module.exports.auth = function (req, res) {
           return;
         }
 
+        user.token = null; //Erase token to ensure a new token is set.
         services.utils.setAuthToken(req, res, user);
         db.saveUser(user, function (user) {
           if (user.forcePasswordChange) {

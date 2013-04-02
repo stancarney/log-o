@@ -18,7 +18,9 @@
     "emailjs": "*",
     "microtime": "*",
     "bcrypt": "*",
-    "cliff": "*"
+    "cliff": "*",
+    "socket.io": "*",
+    "socket.io-client": "*"
   },
   "devDependencies": {
     "mocha": "*",

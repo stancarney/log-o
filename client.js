@@ -4,13 +4,11 @@ var http = require('http')
     , cliff = require('cliff')
     , fs = require('fs')
     , util = require('util')
-    , querystring = require('querystring');
+    , querystring = require('querystring')
+    , io = require('socket.io-client');
 
-//TODO:Stan STOP LOGGING ME OUT!
 //TODO:Stan unit test the rest of the app
-//TODO:Stan build live mode
-//TODO:Stan display original message for ALERTING
-//TODO:Stan adjust alerts to also used host, severity, factility and message not original message).
+//TODO:Stan allow for HTTPS client calls
 
 var ALL_PERMISSIONS = ['USER_ADD', 'USER_LIST', 'USER_EDIT', 'USER_RESET', 'ALERT_ADD', 'ALERT_LIST', 'ALERT_EDIT', 'SEARCH'].sort();
 
@@ -89,6 +87,9 @@ switch (process.argv[3]) {
     break;
   case 'search':
     search(process.argv.slice(4));
+    break;
+  case 'tail':
+    tail(process.argv.slice(4));
     break;
   default:
     search(process.argv.slice(3));
@@ -351,33 +352,61 @@ function logout(args) {
 
 function search(args) {
   withToken(function (token) {
-    //Convert command line into query string matching q={query}&limit=N&skip=N etc...
-    var qs = [];
-    for (var i in args) {
-      var q = args[i].split('=');
-      if (q.length === 2) {
-        qs[q[0]] = q[1];
-      } else {
-        //only 1 element, assume it is the value for q=
-        qs['q'] = q[0];
-      }
-    }
+    var qs = parseArgs(args);
 
     request('/search?' + querystring.stringify(qs), JSON.stringify({}), function (result) {
       for (var index in result) {
         var r = result[index];
-        if (r['message']) {
-          util.puts('[' + moment(r['time']).format('MMM D YYYY, HH:mm:ss') + ' ' + r['facility'] + ' ' + r['severity'] + ']\t' + r['host'] + '   ' + r['message']);
-        } else {
-          util.puts(r);
-        }
+        printRecord(r);
       }
     });
   });
 }
 
+function tail(args) {
+  withToken(function (token) {
+    var qs = parseArgs(args);
+    var tokenStr = token ? token.toString() : '';
+
+    var socket = io.connect('http://' + DEFAULT_LOG_SERVER + ':' + DEFAULT_LOG_SERVER_PORT);
+
+    socket.on('data', function (r) {
+      printRecord(r);
+    });
+
+    socket.on('error', function (err) {
+      console.log(err);
+      process.exit(1);
+    });
+
+    socket.emit('tail', tokenStr, qs);
+  });
+}
+
 function showHelp() {
-  util.puts('node client.js <host(string)> <action({auth|useradd|userlist|reset|passwd|logout|alertadd|alertlist|help|search})> [<args(string)>]');
+  util.puts('node client.js <host(string)> <action({auth|useradd|userlist|reset|passwd|logout|alertadd|alertlist|help|search|tail})> [<args(string)>]');
+}
+
+function parseArgs(args) {
+  var qs = {};
+  for (var i in args) {
+    var q = args[i].split('=');
+    if (q.length === 2) {
+      qs[q[0]] = q[1];
+    } else {
+      //only 1 element, assume it is the value for q=
+      qs['q'] = q[0];
+    }
+  }
+  return qs;
+}
+
+function printRecord(r) {
+  if (r['message']) {
+    util.puts('[' + moment(r['time']).format('MMM D YYYY, HH:mm:ss') + ' ' + r['facility'] + ' ' + r['severity'] + ']\t' + r['host'] + '   ' + r['message']);
+  } else {
+    util.puts(r);
+  }
 }
 
 function saveToken(token) {
@@ -426,7 +455,6 @@ function request(path, postData, callback) {
           callback(result);
         }
         if (res.statusCode != 200) {
-          util.puts(res.statusCode);
           process.exit(1);
         }
       });
