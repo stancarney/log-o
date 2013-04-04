@@ -8,19 +8,15 @@
   },
   "dependencies": {
     "glossy": "*",
-    "moment": "*",
     "mongodb": "*",
     "nconf": "*",
     "cookies": "*",
     "querystring": "*",
-    "prompt": "*",
     "password": "*",
     "emailjs": "*",
     "microtime": "*",
     "bcrypt": "*",
-    "cliff": "*",
-    "socket.io": "*",
-    "socket.io-client": "*"
+    "socket.io": "*"
   },
   "devDependencies": {
     "mocha": "*",
