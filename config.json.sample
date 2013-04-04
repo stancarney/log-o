@@ -11,6 +11,7 @@
 	"tcp_port": 5140,
 	"http_port": 8000,
 	"alert_interval": 1000,
+	"session_timeout": 5400000,
 	"db_init": "./db_init.js",
 	"preprocessors": [ "console_echo.js" ]
 }

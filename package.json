@@ -16,6 +16,7 @@
     "emailjs": "*",
     "microtime": "*",
     "bcrypt": "*",
+    "moment": "*",
     "socket.io": "*"
   },
   "devDependencies": {

@@ -1,10 +1,11 @@
 var Cookies = require('cookies')
     , db = require('../db.js')
+    , config = require('../config.js')
     , services = require('./')
+    , moment = require('moment')
     , url = require('url')
     , crypto = require('crypto');
 
-//TODO:Stan check lastAccesstime to ensure tokens expire!
 function isAuth() {
   var req = arguments[0];
   var res = arguments[1];
@@ -28,6 +29,9 @@ function isAuth() {
         if (!user.active) {
           services.syslog.sendMessage('Auth Failed (User Not Active): ' + user.email + ' IP: ' + req.connection.remoteAddress);
           services.utils.writeResponseMessage(res, 401, 'unauthorized');
+        } else if (new moment(user.lastAccess).isBefore(new moment().subtract('seconds', config.get('session_timeout')))) {
+          services.syslog.sendMessage('Auth Failed (User Not Active): ' + user.email + ' IP: ' + req.connection.remoteAddress);
+          services.utils.writeResponseMessage(res, 401, 'unauthorized');
         } else if (permission && (!user.permissions || user.permissions.indexOf(permission) < 0)) {
           services.syslog.sendMessage('Auth Failed (No Permission): ' + user.email + ' IP: ' + req.connection.remoteAddress);
           services.utils.writeResponseMessage(res, 403, 'forbidden');
@@ -35,7 +39,10 @@ function isAuth() {
           services.syslog.sendMessage('Auth (Change Password): ' + user.email + ' IP: ' + req.connection.remoteAddress);
           writeResponseMessage(res, 200, 'force_password_change');
         } else {
-          callback(user);
+          user.lastAccess = new Date();
+          db.saveUser(user, function (user) {
+            callback(user);
+          });
         }
       } else {
         services.syslog.sendMessage('Auth Failed (Expired or Invalid Token). IP: ' + req.connection.remoteAddress);
@@ -45,7 +52,7 @@ function isAuth() {
   }
 }
 
-//TODO:Stan check lastAccesstime to ensure tokens expire!
+//TODO:Stan check lastAccess to ensure tokens expire!
 //TODO:Stan if this is cleaned up, it could be merged with the isAuth method I think.
 function isAuthWebSocket() {
   var socket = arguments[0];

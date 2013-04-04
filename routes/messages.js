@@ -19,7 +19,7 @@ module.exports.search = function (req, res, urlParts) {
 };
 
 module.exports.tail = function (socket, args, callback) {
-  services.utils.isAuthWebSocket(socket, 'SEARCH', function (user) {
+  services.utils.isAuthWebSocket(socket, 'TAIL', function (user) {
     var qs = args || '';
     services.syslog.sendMessage(user.email + ' tailed the logs with: ' + util.inspect(qs).replace(/(\r\n|\n|\r)/gm, ""));
     db.tailMessages(qs, function (message) {

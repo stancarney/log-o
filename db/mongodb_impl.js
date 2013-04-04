@@ -151,7 +151,7 @@ module.exports.tailMessages = function (queryString, callback) {
         }
 
         //initial query to get the last record matching the criteria
-        var query = collection.find(args).sort({time: -1, timestamp: -1}).limit(1);
+        var query = collection.find(args).sort({_id: -1}).limit(1);
         query.each(function (err, message) {
           if (err) {
             throw new Error(err);

@@ -90,7 +90,8 @@ module.exports.addAdmin = function () {
           'ALERT_ADD',
           'ALERT_LIST',
           'ALERT_EDIT',
-          'SEARCH']}, function (newUser) {
+          'SEARCH',
+          'TAIL']}, function (newUser) {
           services.syslog.sendMessage('User Add: admin');
         });
       });
@@ -199,8 +200,7 @@ module.exports.changePassword = function (req, res) {
 module.exports.logout = function (req, res) {
   services.utils.isAuth(req, res, function (user) {
     //Set auth token but don't send it back via the cookie
-    user['token'] = crypto.randomBytes(Math.ceil(256)).toString('base64');
-    user['lastAccess'] = new Date();
+    user.token = crypto.randomBytes(Math.ceil(256)).toString('base64');
     services.syslog.sendMessage('Logout: ' + user.email + ' IP: ' + req.connection.remoteAddress);
     db.saveUser(user, function (user) {
       if (user) {
