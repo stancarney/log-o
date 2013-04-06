@@ -9,12 +9,22 @@ module.exports.init = function (mongodb, username, password) {
       data.authenticate(username, password, function (err2, data2) {
         if (err2) throw new Error(err2);
         db = mongodb;
-        mongodb.collection('users', function (err, collection) {
+
+        //Create a 512KB collection in which to tail messages from.
+        db.createCollection('tailmessages', {w: 1, capped: true, size: 512000}, function (err, collection) {
+          assert.equal(null, err);
+        });
+        db.collection('users', function (err, collection) {
           collection.ensureIndex({email: 1}, {unique: true}, function (err, result) {
             assert.equal(null, err);
           });
         });
-        mongodb.collection('messages', function (err, collection) {
+        db.collection('alerts', function (err, collection) {
+          collection.ensureIndex({name: 1}, {unique: true}, function (err, result) {
+            assert.equal(null, err);
+          });
+        });
+        db.collection('messages', function (err, collection) {
           collection.ensureIndex({time: -1, timestamp: -1}, function (err, result) {
             assert.equal(null, err);
           });
@@ -85,14 +95,12 @@ module.exports.getUserByEmail = function (email, callback) {
 
 module.exports.saveMessage = function (message, callback) {
   saveDocument('messages', message, function (err, message) {
-    if (err) {
-      throw new Error('Could not save message:', err);
-    }
-
-    if (!callback) {
-      throw new Error('Callback function is required for saveMessage!');
-    }
-    callback(message);
+    if (err) throw new Error('Could not save message:', err);
+    if (!callback) throw new Error('Callback function is required for saveMessage!');
+    saveDocument('tailmessages', message, function (err, message) {
+      if (err) throw new Error('Could not save tailmessage:', err);
+      callback(message);
+    });
   });
 };
 
@@ -132,7 +140,7 @@ module.exports.getMessages = function (queryString, callback) {
 };
 
 module.exports.tailMessages = function (queryString, callback) {
-  db.collection('messages', function (err, collection) {
+  db.collection('tailmessages', function (err, collection) {
     if (err) {
       throw new Error(err);
     }
