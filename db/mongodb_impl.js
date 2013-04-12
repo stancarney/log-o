@@ -204,7 +204,7 @@ module.exports.getAlerts = function (callback) {
 module.exports.getActiveAlerts = function (callback) {
   db.collection('alerts', function (err, collection) {
     var alerts = [];
-    collection.find({enable: true}).sort({email: 1}).toArray(function (err, alerts) {
+    collection.find({active: true}).sort({email: 1}).toArray(function (err, alerts) {
       if (err) {
         throw new Error(err);
       }
