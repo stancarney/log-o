@@ -48,12 +48,22 @@ function saveUser(user, callback) {
   if (callback) callback(user);
 }
 
+function savePriorPassword(authUser, callback) {
+  authUser.passwords.push(authUser.password);
+  callback();
+}
+
 function getUsers(callback) {
   var users = [];
   for (var i in usersByEmail) {
     users.push(usersByEmail[i]);
   }
   callback(users);
+}
+
+function getPriorPasswords(authUser, callback) {
+  if (!authUser.passwords) authUser.passwords = [];
+  callback(authUser.passwords);
 }
 
 function getUserByToken(token, callback) {
@@ -131,7 +141,9 @@ function isAvailable() {
 
 module.exports = {
   saveUser: saveUser,
+  savePriorPassword: savePriorPassword,
   getUsers: getUsers,
+  getPriorPasswords: getPriorPasswords,
   getUserByToken: getUserByToken,
   getUserByEmail: getUserByEmail,
   saveMessage: saveMessage,

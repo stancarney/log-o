@@ -22,7 +22,8 @@
   "devDependencies": {
     "mocha": "*",
     "supertest": "*",
-    "nodemon": "*"
+    "nodemon": "*",
+    "rewire": "*"
   },
   "license": "GPLv3",
   "engine": {

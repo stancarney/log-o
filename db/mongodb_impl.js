@@ -69,10 +69,20 @@ module.exports.saveUser = function (user, callback) {
   });
 };
 
+module.exports.savePriorPassword = function (authUser, callback) {
+  authUser.passwords.push(authUser.password);
+  callback();
+};
+
 module.exports.getUsers = function (callback) {
   findDocuments('users', {}, function (users) {
     callback(users);
   });
+};
+
+module.exports.getPriorPasswords = function (authUser, callback) {
+  if (!authUser.passwords) authUser.passwords = [];
+  callback(authUser.passwords);
 };
 
 module.exports.getUserByToken = function (token, callback) {

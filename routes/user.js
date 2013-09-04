@@ -4,7 +4,7 @@ var db = require('../db.js')
     , crypto = require('crypto')
     , bcrypt = require('bcrypt');
 
-module.exports.auth = function (req, res) {
+function auth(req, res) {
   services.utils.parsePost(req, res, function () {
     db.getUserByEmail(res.post['email'], function (user) {
 
@@ -42,9 +42,9 @@ module.exports.auth = function (req, res) {
       });
     });
   });
-};
+}
 
-module.exports.add = function (req, res) {
+function add(req, res) {
   services.utils.parsePost(req, res, function () {
     services.utils.isAuth(req, res, 'USER_ADD', function (authUser) {
 
@@ -68,13 +68,13 @@ module.exports.add = function (req, res) {
       });
     });
   });
-};
+}
 
 /*
  * Adds an admin user if no other users exist.
  */
 //TODO: Not really a route.
-module.exports.addAdmin = function () {
+function addAdmin() {
   db.getUsers(function (users) {
     if (!users || users.length > 0) {
       return;
@@ -97,9 +97,9 @@ module.exports.addAdmin = function () {
       });
     });
   });
-};
+}
 
-module.exports.list = function list(req, res) {
+function list(req, res) {
   services.utils.isAuth(req, res, 'USER_LIST', function (authUser) {
     db.getUsers(function (users) {
       services.syslog.sendMessage('User List: ' + authUser.email + ' IP: ' + req.connection.remoteAddress);
@@ -111,9 +111,9 @@ module.exports.list = function list(req, res) {
       res.end();
     });
   });
-};
+}
 
-module.exports.edit = function (req, res) {
+function edit(req, res) {
   services.utils.parsePost(req, res, function () {
     services.utils.isAuth(req, res, 'USER_EDIT', function (authUser) {
       var userParams = {email: res.post['email'], active: !!(res.post['active'] === 'true'), permissions: res.post['permissions']};
@@ -135,9 +135,9 @@ module.exports.edit = function (req, res) {
       });
     });
   });
-};
+}
 
-module.exports.reset = function (req, res) {
+function reset(req, res) {
   services.utils.parsePost(req, res, function () {
     services.utils.isAuth(req, res, function (authUser) {
       db.getUserByEmail(res.post['email'], function (resetUser) {
@@ -167,9 +167,9 @@ module.exports.reset = function (req, res) {
       });
     });
   });
-};
+}
 
-module.exports.changePassword = function (req, res) {
+function changePassword(req, res) {
   services.utils.parsePost(req, res, function () {
     services.utils.isAuth(req, res, function (authUser) {
 
@@ -179,25 +179,34 @@ module.exports.changePassword = function (req, res) {
         return;
       }
 
-      bcrypt.genSalt(10, function (err, salt) {
-        bcrypt.hash(res.post['newPassword'], salt, function (err, hashedPassword) {
-          authUser.password = hashedPassword;
-          authUser.forcePasswordChange = false;
-          services.syslog.sendMessage('User Change Password: ' + authUser.email + ' IP: ' + req.connection.remoteAddress);
-          db.saveUser(authUser, function (user) {
-            if (user) {
-              services.utils.writeResponseMessage(res, 200, 'success');
-            } else {
-              services.utils.writeResponseMessage(res, 500, 'could_not_reset_user');
-            }
+      comparePriorPasswords(authUser, res.post['newPassword'], function (match) {
+        if (match) {
+          services.utils.writeResponseMessage(res, 400, 'password_matches_historical');
+          return;
+        }
+
+        bcrypt.genSalt(10, function (err, salt) {
+          bcrypt.hash(res.post['newPassword'], salt, function (err, hashedPassword) {
+            authUser.password = hashedPassword;
+            authUser.forcePasswordChange = false;
+            services.syslog.sendMessage('User Change Password: ' + authUser.email + ' IP: ' + req.connection.remoteAddress);
+            db.saveUser(authUser, function (user) {
+              if (user) {
+                db.savePriorPassword(authUser, function () {
+                  services.utils.writeResponseMessage(res, 200, 'success');
+                });
+              } else {
+                services.utils.writeResponseMessage(res, 500, 'could_not_change_password');
+              }
+            });
           });
         });
       });
     });
   });
-};
+}
 
-module.exports.logout = function (req, res) {
+function logout(req, res) {
   services.utils.isAuth(req, res, function (user) {
     //Set auth token but don't send it back via the cookie
     user.token = crypto.randomBytes(Math.ceil(256)).toString('base64');
@@ -210,4 +219,25 @@ module.exports.logout = function (req, res) {
       }
     });
   });
+}
+
+function comparePriorPasswords(authUser, newPassword, callback) {
+  db.getPriorPasswords(authUser, function (passwords) {
+    for (var i in passwords) {
+      bcrypt.compare(newPassword, passwords[i], function (err, result) {
+        callback(result);
+      });
+    }
+  });
+}
+
+module.exports = {
+  auth: auth,
+  add: add,
+  addAdmin: addAdmin,
+  list: list,
+  edit: edit,
+  reset: reset,
+  changePassword: changePassword,
+  logout: logout
 };
