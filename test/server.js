@@ -223,6 +223,23 @@ describe('Server', function () {
           .expect('Content-Type', /json/)
           .expect(200, '{"result":"success"}', done);
     });
+		it('should return 400 on match', function (done) {
+			request(server)
+					.post('/user/password')
+					.set('Cookie', 'auth=' + token)
+					.send(JSON.stringify({newPassword: 'newpassword'}))
+					.expect('Content-Type', /json/)
+					.expect(200, '{"result":"success"}')
+					.end(function (err, res) {
+						if (err) throw err;
+						request(server)
+								.post('/user/password')
+								.set('Cookie', 'auth=' + token)
+								.send(JSON.stringify({newPassword: 'newpassword'}))
+								.expect('Content-Type', /json/)
+								.expect(400, '{"result":"password_matches_historical"}', done);
+					});
+		});
     it('should return 400 on missing password', function (done) {
       request(server)
           .post('/user/password')

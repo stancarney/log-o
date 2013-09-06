@@ -224,10 +224,12 @@ function logout(req, res) {
 function comparePriorPasswords(authUser, newPassword, callback) {
   db.getPriorPasswords(authUser, function (passwords) {
     for (var i in passwords) {
-      bcrypt.compare(newPassword, passwords[i], function (err, result) {
-        callback(result);
-      });
+			if(bcrypt.compareSync(newPassword, passwords[i])){
+				callback(true);
+				return;
+			}
     }
+		callback(false);
   });
 }
 
